@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Суточно.AI & Booking — Умный поиск посуточного жилья</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --booking-blue: #003580;
+            --booking-blue-light: #006ce4;
+            --booking-yellow: #febb02;
+            --booking-orange: #f27b00;
+            --bg-gray: #f5f7fa;
+            --card-border: #e7e7e7;
+            --text-main: #1a1a1a;
+            --text-secondary: #595959;
+            --text-light: #717171;
+            --green-bg: #eaf7ed;
+            --green-text: #1b5e20;
+            --green-border: #c8e6c9;
+            --warn-bg: #fff8e1;
+            --warn-text: #b78103;
+            --warn-border: #ffe082;
+            --danger-bg: #fde8e8;
+            --danger-text: #c81e1e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { background: var(--bg-gray); color: var(--text-main); line-height: 1.5; }
+
+        /* Top Header */
+        header { background: var(--booking-blue); color: #fff; padding: 12px 0; }
+        .nav-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
+        .logo-area { display: flex; align-items: center; gap: 12px; }
+        .logo-title { font-size: 22px; font-weight: 700; color: #fff; text-decoration: none; display: flex; align-items: center; gap: 6px; }
+        .logo-ai-badge { background: var(--booking-yellow); color: #003580; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; text-transform: uppercase; }
+        .nav-actions { display: flex; align-items: center; gap: 16px; font-size: 14px; font-weight: 500; }
+        .nav-link { color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 4px; transition: background 0.2s; }
+        .nav-link:hover { background: rgba(255, 255, 255, 0.1); }
+        .nav-btn { background: #fff; color: var(--booking-blue-light); border: none; padding: 7px 16px; border-radius: 4px; font-weight: 600; cursor: pointer; }
+
+        /* Hero & Search Banner */
+        .hero { background: var(--booking-blue); color: #fff; padding: 15px 0 45px 0; border-bottom: 4px solid var(--booking-yellow); }
+        .hero-inner { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .hero-title { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+        .hero-subtitle { font-size: 15px; color: #d0e2ff; margin-bottom: 20px; }
+
+        /* Search Bar (Booking Yellow Box) */
+        .search-box {
+            background: var(--booking-yellow);
+            padding: 4px;
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 1.5fr auto;
+            gap: 4px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+        }
+        .search-field {
+            background: #fff;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-radius: 4px;
+        }
+        .search-field label { font-size: 11px; text-transform: uppercase; color: var(--text-light); font-weight: 600; display: block; }
+        .search-field input, .search-field select {
+            border: none;
+            outline: none;
+            width: 100%;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+            background: transparent;
+        }
+        .search-btn {
+            background: var(--booking-blue-light);
+            color: #fff;
+            border: none;
+            padding: 0 28px;
+            font-size: 16px;
+            font-weight: 700;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .search-btn:hover { background: #0054b4; }
+
+        /* AI Prompt Suggestion Bar */
+        .ai-prompt-bar {
+            background: #fff;
+            max-width: 1200px;
+            margin: -20px auto 25px auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #dbeafe;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .ai-prompt-input-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 6px 12px;
+            transition: border-color 0.2s;
+        }
+        .ai-prompt-input-wrap:focus-within { border-color: var(--booking-blue-light); background: #fff; box-shadow: 0 0 0 3px rgba(0,108,228,0.1); }
+        .ai-prompt-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 14.5px;
+            color: var(--text-main);
+        }
+        .ai-ask-btn {
+            background: var(--booking-blue-light);
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .ai-prompt-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12.5px; }
+        .pill-label { color: var(--text-secondary); font-weight: 600; }
+        .pill {
+            background: #eff6ff;
+            color: var(--booking-blue-light);
+            border: 1px solid #bfdbfe;
+            padding: 4px 11px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-weight: 500;
+        }
+        .pill:hover { background: var(--booking-blue-light); color: #fff; }
+
+        /* Main Container: Sidebar + Listings */
+        .main-container { max-width: 1200px; margin: 0 auto; padding: 0 20px 60px 20px; display: grid; grid-template-columns: 280px 1fr; gap: 24px; }
+
+        /* Filter Sidebar */
+        .sidebar { background: #fff; border-radius: 8px; border: 1px solid var(--card-border); padding: 18px; height: fit-content; }
+        .sidebar-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
+        .filter-group { margin-bottom: 20px; }
+        .filter-group-title { font-size: 13.5px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; display: flex; justify-content: space-between; }
+        .filter-checkbox { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; cursor: pointer; }
+        .filter-checkbox input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--booking-blue-light); }
+        .price-slider-wrap { display: flex; flex-direction: column; gap: 6px; }
+        .price-slider { width: 100%; accent-color: var(--booking-blue-light); }
+        .price-label { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+
+        /* Listings Section */
+        .listings-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+        .listings-count { font-size: 19px; font-weight: 700; }
+        .sort-select { padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; outline: none; background: #fff; }
+
+        /* Property Card */
+        .property-card {
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            margin-bottom: 18px;
+            display: grid;
+            grid-template-columns: 270px 1fr 220px;
+            overflow: hidden;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .property-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); border-color: #cbd5e1; }
+        .card-photo-wrap { position: relative; overflow: hidden; background: #e2e8f0; min-height: 220px; }
+        .card-photo { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+        .property-card:hover .card-photo { transform: scale(1.03); }
+        .photo-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 53, 128, 0.9);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+            backdrop-filter: blur(2px);
+        }
+        .instant-badge {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: #008234;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
+
+        .card-body { padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #f0f0f0; }
+        .card-title { font-size: 16px; font-weight: 700; color: var(--booking-blue-light); text-decoration: none; margin-bottom: 4px; cursor: pointer; }
+        .card-title:hover { text-decoration: underline; }
+        .card-location { font-size: 12.5px; color: var(--text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 4px; }
+        .card-amenities { font-size: 12px; color: var(--text-light); margin-bottom: 10px; }
+
+        /* AI Insights Badges on Card */
+        .ai-card-insights { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
+        .insight-pill {
+            font-size: 11.5px;
+            padding: 5px 9px;
+            border-radius: 4px;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            line-height: 1.35;
+        }
+        .insight-pill.positive { background: var(--green-bg); color: var(--green-text); border: 1px solid var(--green-border); }
+        .insight-pill.warning { background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn-border); }
+
+        .card-pricing { padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; text-align: right; background: #fafafa; }
+        .score-row { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .score-info { text-align: right; }
+        .score-label { font-size: 13px; font-weight: 600; color: var(--text-main); }
+        .score-count { font-size: 11px; color: var(--text-light); }
+        .score-badge {
+            background: var(--booking-blue);
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            width: 34px;
+            height: 34px;
+            border-radius: 6px 6px 6px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .price-meta { font-size: 11.5px; color: var(--text-light); margin-bottom: 2px; }
+        .price-amount { font-size: 20px; font-weight: 700; color: var(--text-main); }
+        .free-cancel { font-size: 11.5px; color: #008234; font-weight: 600; margin-bottom: 10px; }
+        .book-btn {
+            background: var(--booking-blue-light);
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 4px;
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .book-btn:hover { background: #0054b4; }
+
+        /* Floating AI Chat Assistant Drawer */
+        .chat-fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--booking-blue-light);
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            padding: 12px 22px;
+            font-size: 14.5px;
+            font-weight: 700;
+            box-shadow: 0 6px 22px rgba(0, 108, 228, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            z-index: 1000;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .chat-fab:hover { transform: scale(1.03); background: #0054b4; }
+
+        .chat-drawer {
+            position: fixed;
+            bottom: 85px;
+            right: 24px;
+            width: 380px;
+            height: 520px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+            border: 1px solid var(--card-border);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1000;
+            animation: slideUp 0.2s ease-out;
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .chat-header {
+            background: var(--booking-blue);
+            color: #fff;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-header-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .chat-close-btn { background: transparent; border: none; color: #fff; font-size: 18px; cursor: pointer; }
+
+        .chat-messages {
+            flex: 1;
+            padding: 14px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #f8fafc;
+            font-size: 13px;
+        }
+        .msg { max-width: 85%; padding: 10px 14px; border-radius: 10px; line-height: 1.4; }
+        .msg.bot { background: #fff; color: var(--text-main); border: 1px solid #e2e8f0; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .msg.user { background: var(--booking-blue-light); color: #fff; align-self: flex-end; border-bottom-right-radius: 2px; }
+
+        .chat-input-bar {
+            padding: 10px 12px;
+            background: #fff;
+            border-top: 1px solid var(--card-border);
+            display: flex;
+            gap: 8px;
+        }
+        .chat-input {
+            flex: 1;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 13px;
+            outline: none;
+        }
+        .chat-input:focus { border-color: var(--booking-blue-light); }
+        .chat-send-btn {
+            background: var(--booking-blue-light);
+            color: #fff;
+            border: none;
+            padding: 0 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Detail Modal Popup */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+        .modal-content {
+            background: #fff;
+            width: 100%;
+            max-width: 780px;
+            max-height: 85vh;
+            border-radius: 10px;
+            overflow-y: auto;
+            position: relative;
+            padding: 24px;
+        }
+        .modal-close { position: absolute; top: 16px; right: 18px; font-size: 24px; border: none; background: transparent; cursor: pointer; color: var(--text-secondary); }
+
+        @media (max-width: 900px) {
+            .main-container { grid-template-columns: 1fr; }
+            .property-card { grid-template-columns: 1fr; }
+            .search-box { grid-template-columns: 1fr; }
+            .chat-drawer { width: 92%; right: 4%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="nav-container">
+            <div class="logo-area">
+                <a href="/" class="logo-title">
+                    <span>Суточно</span><span style="color:var(--booking-yellow);">.AI</span>
+                </a>
+                <span class="logo-ai-badge">Booking Hybrid</span>
+            </div>
+            <div class="nav-actions">
+                <span>RUB (₽)</span>
+                <span>🇷🇺 RU</span>
+                <a href="#" class="nav-link">Сдать жилье</a>
+                <button class="nav-btn">Войти</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Search Banner -->
+    <div class="hero">
+        <div class="hero-inner">
+            <h1 class="hero-title">Найдите идеальное жилье с ИИ-помощником</h1>
+            <p class="hero-subtitle">ИИ анализирует реальные жалобы и похвалы в отзывах, фильтруя шум, стройки и обман</p>
+
+            <div class="search-box">
+                <div class="search-field">
+                    <span>📍</span>
+                    <div>
+                        <label>Куда едем?</label>
+                        <select id="citySelect">
+                            <option value="">Все направления</option>
+                            <option value="Сочи">Сочи / Адлер</option>
+                            <option value="Санкт-Петербург">Санкт-Петербург</option>
+                            <option value="Зеленоградск">Зеленоградск (Балтика)</option>
+                            <option value="Красная Поляна">Красная Поляна (Горы)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="search-field">
+                    <span>📅</span>
+                    <div>
+                        <label>Даты</label>
+                        <input type="text" value="3 ночи, на этой неделе" readonly>
+                    </div>
+                </div>
+
+                <div class="search-field">
+                    <span>👤</span>
+                    <div>
+                        <label>Гости</label>
+                        <select id="guestsSelect">
+                            <option value="1">1 гость</option>
+                            <option value="2" selected>2 взрослых</option>
+                            <option value="3">3 гостей</option>
+                            <option value="4">4+ гостей</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="search-btn" onclick="applyFilters()">Найти</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Smart Prompt Bar -->
+    <div class="ai-prompt-bar">
+        <div class="ai-prompt-input-wrap">
+            <span style="font-size: 18px;">✨</span>
+            <input type="text" id="aiPromptInput" class="ai-prompt-input" placeholder="Напишите свободно: 'хочу в Сочи на море с балконом, но без шума от баров'...">
+            <button class="ai-ask-btn" onclick="submitAIPrompt()">
+                <span>Спросить ИИ</span>
+                <span>→</span>
+            </button>
+        </div>
+        <div class="ai-prompt-pills">
+            <span class="pill-label">Быстрые запросы:</span>
+            <span class="pill" onclick="quickSearch('Хочу в Сочи на двоих смотреть на море с балкона, только чтобы не было шумно от баров и нормальный вай-фай')">🌊 Море с балкона без шума (Сочи)</span>
+            <span class="pill" onclick="quickSearch('Ищу квартиру в Питере для удаленной работы, чтобы была тишина во дворике и быстрый интернет')">💻 Тихий ворккейн в СПб с интернетом</span>
+            <span class="pill" onclick="quickSearch('Хочу отдых на первой линии Балтийского моря, чтобы слышать прибой')">🏖️ Первая линия Балтики (Зеленоградск)</span>
+            <span class="pill" onclick="quickSearch('Горное шале с камином и сауной для отдыха')">🏔️ Шале в горах Красной Поляны</span>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <div class="main-container">
+        <!-- Sidebar Filters -->
+        <aside class="sidebar">
+            <h2 class="sidebar-title">Фильтры</h2>
+
+            <!-- Amenities -->
+            <div class="filter-group">
+                <div class="filter-group-title">Популярные параметры</div>
+                <label class="filter-checkbox">
+                    <input type="checkbox" id="f_sea_view" onchange="applyFilters()">
+                    <span>Вид на море (проверенный)</span>
+                </label>
+                <label class="filter-checkbox">
+                    <input type="checkbox" id="f_balcony" onchange="applyFilters()">
+                    <span>Балкон / Лоджия</span>
+                </label>
+                <label class="filter-checkbox">
+                    <input type="checkbox" id="f_wifi_speed" onchange="applyFilters()">
+                    <span>Скоростной Wi-Fi (100+ Мбит)</span>
+                </label>
+                <label class="filter-checkbox">
+                    <input type="checkbox" id="f_noise_street" onchange="applyFilters()">
+                    <span>Идеальная тишина (без шума)</span>
+                </label>
+                <label class="filter-checkbox">
+                    <input type="checkbox" id="f_self_checkin" onchange="applyFilters()">
+                    <span>Бесконтактное заселение</span>
+                </label>
+            </div>
+
+            <!-- Price Slider -->
+            <div class="filter-group">
+                <div class="filter-group-title">
+                    <span>Макс. цена за сутки</span>
+                    <span id="priceVal" style="color:var(--booking-blue-light);">15 000 ₽</span>
+                </div>
+                <div class="price-slider-wrap">
+                    <input type="range" id="priceRange" class="price-slider" min="3000" max="15000" step="500" value="15000" oninput="updatePriceSlider(this.value)">
+                </div>
+            </div>
+
+            <button onclick="resetAllFilters()" style="width:100%; padding: 8px; background: transparent; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; cursor: pointer;">Сбросить все фильтры</button>
+        </aside>
+
+        <!-- Listings Section -->
+        <main>
+            <div class="listings-header">
+                <div>
+                    <h2 class="listings-count" id="resultsCount">Найдено вариантов</h2>
+                    <div id="aiFilterFeedback" style="font-size: 13px; color: var(--booking-blue-light); font-weight: 500; margin-top: 3px;"></div>
+                </div>
+                <select class="sort-select" id="sortSelect" onchange="renderCards()">
+                    <option value="ai">По рекомендации ИИ</option>
+                    <option value="price_asc">Сначала дешевле</option>
+                    <option value="rating_desc">По оценке гостей</option>
+                </select>
+            </div>
+
+            <div id="cardsList">
+                <!-- Rendered dynamically via JS -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Floating AI Chat Assistant -->
+    <button class="chat-fab" onclick="toggleChat()">
+        <span>💬</span>
+        <span>ИИ-Помощник</span>
+    </button>
+
+    <div class="chat-drawer" id="chatDrawer">
+        <div class="chat-header">
+            <div class="chat-header-title">
+                <span>🤖</span>
+                <span>ИИ Консьерж Суточно.AI</span>
+            </div>
+            <button class="chat-close-btn" onclick="toggleChat()">✕</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="msg bot">
+                Здравствуйте! Я помогаю подобрать идеальное жилье по реальным отзывам.<br><br>
+                Напишите своими словами, чего вам хочется (например: <i>«Хочу на море с красивым закатом, но без пьяных криков и шума»</i>).
+            </div>
+        </div>
+        <div class="chat-input-bar">
+            <input type="text" id="chatInput" class="chat-input" placeholder="Задайте вопрос по жилью..." onkeypress="handleChatKey(event)">
+            <button class="chat-send-btn" onclick="sendChatMessage()">→</button>
+        </div>
+    </div>
+
+    <!-- Property Details Modal -->
+    <div class="modal-overlay" id="detailModal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeModalDirect()">✕</button>
+            <div id="modalBody">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentResults = [];
+        let activeQuery = "";
+
+        // Initial Load
+        window.addEventListener("DOMContentLoaded", () => {
+            fetchListings();
+        });
+
+        async function fetchListings(query = "") {
+            activeQuery = query;
+            const city = document.getElementById("citySelect").value;
+            const guests = document.getElementById("guestsSelect").value;
+            const maxPrice = document.getElementById("priceRange").value;
+
+            const amenities = [];
+            if (document.getElementById("f_sea_view").checked) amenities.push("sea_view");
+            if (document.getElementById("f_balcony").checked) amenities.push("balcony");
+            if (document.getElementById("f_wifi_speed").checked) amenities.push("wifi_speed");
+            if (document.getElementById("f_noise_street").checked) amenities.push("noise_street");
+
+            let url = `/api/search?q=${encodeURIComponent(query || (city ? city : ''))}`;
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                currentResults = data.results || [];
+                
+                // Client-side additional filter matching for checkboxes & slider
+                currentResults = currentResults.filter(item => {
+                    if (city && item.city !== city) return false;
+                    if (item.price > parseFloat(maxPrice)) return false;
+                    return true;
+                });
+
+                document.getElementById("resultsCount").innerText = `${city ? city + ': ' : ''}найдено вариантов (${currentResults.length})`;
+                if (query) {
+                    document.getElementById("aiFilterFeedback").innerHTML = `✨ Результаты оптимизированы под запрос: <i>«${query}»</i>`;
+                } else {
+                    document.getElementById("aiFilterFeedback").innerText = "";
+                }
+
+                renderCards();
+            } catch (err) {
+                console.error("Fetch error:", err);
+            }
+        }
+
+        function renderCards() {
+            const container = document.getElementById("cardsList");
+            const sortBy = document.getElementById("sortSelect").value;
+
+            let sorted = [...currentResults];
+            if (sortBy === "price_asc") {
+                sorted.sort((a, b) => a.price - b.price);
+            } else if (sortBy === "rating_desc") {
+                sorted.sort((a, b) => b.rating - a.rating);
+            } else {
+                sorted.sort((a, b) => (b.ai_score || 0) - (a.ai_score || 0));
+            }
+
+            if (sorted.length === 0) {
+                container.innerHTML = `
+                    <div style="background:#fff; padding:40px; text-align:center; border-radius:8px; border:1px solid #e7e7e7;">
+                        <p style="font-size:16px; color:#595959;">По вашим критериям ничего не найдено.</p>
+                        <button onclick="resetAllFilters()" style="margin-top:12px; padding:8px 16px; background:#006ce4; color:#fff; border:none; border-radius:4px; cursor:pointer;">Сбросить фильтры</button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = sorted.map((item, idx) => {
+                const isRecommended = idx === 0 && (item.ai_score || 0) > 80;
+                const hasWarnings = item.warnings && item.warnings.length > 0;
+
+                return `
+                    <article class="property-card">
+                        <div class="card-photo-wrap">
+                            <img src="${item.cover_photo}" alt="${item.title}" class="card-photo" loading="lazy">
+                            ${isRecommended ? '<span class="photo-badge" style="background:#003580;">🏆 Выбор ИИ</span>' : ''}
+                            ${item.instant_booking ? '<span class="instant-badge">⚡ Мгновенное бронирование</span>' : ''}
+                        </div>
+
+                        <div class="card-body">
+                            <div>
+                                <h3 class="card-title" onclick="openDetails('${item.property_id}')">${item.title}</h3>
+                                <div class="card-location">
+                                    <span>📍 ${item.city}, ${item.district || ''}</span>
+                                    ${item.distance_to_sea_m ? `• <b style="color:#008234;">${item.distance_to_sea_m} м до моря</b>` : ''}
+                                </div>
+                                <div class="card-amenities">${item.amenities_names}</div>
+                            </div>
+
+                            <!-- AI Aspect Insights -->
+                            <div class="ai-card-insights">
+                                ${item.reasons && item.reasons.length ? `
+                                    <div class="insight-pill positive">
+                                        <span>👍</span>
+                                        <div><b>Гости хвалят:</b> ${item.reasons[0]}</div>
+                                    </div>
+                                ` : ''}
+
+                                ${hasWarnings ? `
+                                    <div class="insight-pill warning">
+                                        <span>⚠️</span>
+                                        <div><b>Внимание по отзывам:</b> ${item.warnings[0]}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <div class="card-pricing">
+                            <div class="score-row">
+                                <div class="score-info">
+                                    <div class="score-label">${item.rating >= 4.9 ? 'Превосходно' : (item.rating >= 4.5 ? 'Очень хорошо' : 'Хорошо')}</div>
+                                    <div class="score-count">${item.reviews_count} отзывов</div>
+                                </div>
+                                <div class="score-badge">${item.rating}</div>
+                            </div>
+
+                            <div>
+                                <div class="price-meta">1 ночь, 2 взрослых</div>
+                                <div class="price-amount">${item.price.toLocaleString('ru-RU')} ₽</div>
+                                <div class="free-cancel">✓ Бесплатная отмена</div>
+                                <button class="book-btn" onclick="openDetails('${item.property_id}')">Подробнее</button>
+                            </div>
+                        </div>
+                    </article>
+                `;
+            }).join('');
+        }
+
+        function applyFilters() {
+            const promptVal = document.getElementById("aiPromptInput").value;
+            fetchListings(promptVal);
+        }
+
+        function submitAIPrompt() {
+            const promptVal = document.getElementById("aiPromptInput").value;
+            if (promptVal) {
+                quickSearch(promptVal);
+            }
+        }
+
+        function quickSearch(text) {
+            document.getElementById("aiPromptInput").value = text;
+            fetchListings(text);
+
+            // Also send to chat drawer to show AI conversational explanation
+            addChatMessage(text, 'user');
+            sendAIPromptToChat(text);
+        }
+
+        function updatePriceSlider(val) {
+            document.getElementById("priceVal").innerText = parseInt(val).toLocaleString('ru-RU') + ' ₽';
+            applyFilters();
+        }
+
+        function resetAllFilters() {
+            document.getElementById("citySelect").value = "";
+            document.getElementById("guestsSelect").value = "2";
+            document.getElementById("priceRange").value = "15000";
+            document.getElementById("priceVal").innerText = "15 000 ₽";
+            document.getElementById("aiPromptInput").value = "";
+            document.querySelectorAll(".sidebar input[type='checkbox']").forEach(cb => cb.checked = false);
+            fetchListings("");
+        }
+
+        // Chat functionality
+        function toggleChat() {
+            const drawer = document.getElementById("chatDrawer");
+            drawer.style.display = drawer.style.display === "flex" ? "none" : "flex";
+            if (drawer.style.display === "flex") {
+                document.getElementById("chatInput").focus();
+            }
+        }
+
+        function handleChatKey(e) {
+            if (e.key === "Enter") sendChatMessage();
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById("chatInput");
+            const text = input.value.trim();
+            if (!text) return;
+
+            addChatMessage(text, 'user');
+            input.value = "";
+
+            await sendAIPromptToChat(text);
+        }
+
+        async function sendAIPromptToChat(text) {
+            try {
+                const res = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: text })
+                });
+                const data = await res.json();
+                addChatMessage(data.reply, 'bot');
+                // Sync catalog with chat recommendations
+                fetchListings(text);
+            } catch (err) {
+                addChatMessage("Произошла ошибка связи с сервером.", 'bot');
+            }
+        }
+
+        function addChatMessage(text, sender) {
+            const container = document.getElementById("chatMessages");
+            const div = document.createElement("div");
+            div.className = `msg ${sender}`;
+            div.innerHTML = text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Modal details
+        async function openDetails(propertyId) {
+            const modal = document.getElementById("detailModal");
+            const body = document.getElementById("modalBody");
+            body.innerHTML = "<p>Загрузка данных объекта...</p>";
+            modal.style.display = "flex";
+
+            try {
+                const res = await fetch(`/api/properties/${propertyId}`);
+                const data = await res.json();
+                const p = data.property;
+
+                body.innerHTML = `
+                    <h2 style="font-size:20px; color:#003580; margin-bottom:8px;">${p.title}</h2>
+                    <p style="color:#595959; font-size:13px; margin-bottom:14px;">📍 ${p.city}, ${p.address}</p>
+                    
+                    <div style="background:#f8fafc; padding:12px; border-radius:6px; margin-bottom:18px; font-size:13.5px;">
+                        ${p.description}
+                    </div>
+
+                    <h4 style="font-size:15px; margin-bottom:8px;">Анализ реальных отзывов гостей:</h4>
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;">
+                        ${data.ai_aspects.map(asp => `
+                            <div style="font-size:12.5px; padding:6px 10px; border-radius:4px; background:${asp.sentiment === 'positive' ? '#eaf7ed' : '#fff3e0'}; color:${asp.sentiment === 'positive' ? '#1b5e20' : '#b78103'};">
+                                <b>${asp.aspect_code}:</b> «${asp.excerpt}»
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <h4 style="font-size:15px; margin-bottom:8px;">Полные отзывы гостей:</h4>
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+                        ${data.reviews.map(r => `
+                            <div style="border:1px solid #e2e8f0; border-radius:6px; padding:10px; font-size:12.5px;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                    <b>Оценка: ⭐ ${r.rating_overall} / 10</b>
+                                    <span style="color:#717171;">${r.created_at.slice(0, 10)}</span>
+                                </div>
+                                ${r.pros_text ? `<p style="color:#1b5e20;"><b>Плюсы:</b> ${r.pros_text}</p>` : ''}
+                                ${r.cons_text ? `<p style="color:#c81e1e; margin-top:4px;"><b>Минусы:</b> ${r.cons_text}</p>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (err) {
+                body.innerHTML = "<p>Ошибка загрузки.</p>";
+            }
+        }
+
+        function closeModal(e) {
+            if (e.target.id === "detailModal") closeModalDirect();
+        }
+        function closeModalDirect() {
+            document.getElementById("detailModal").style.display = "none";
+        }
+    </script>
+</body>
+</html>
