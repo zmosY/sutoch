@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карточка жилья — Суточно.AI & Booking</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --booking-blue: #003580;
+            --booking-blue-light: #006ce4;
+            --booking-yellow: #febb02;
+            --bg-gray: #f5f7fa;
+            --card-border: #e2e8f0;
+            --text-main: #1a1a1a;
+            --text-secondary: #595959;
+            --text-light: #717171;
+            --green-bg: #eaf7ed;
+            --green-text: #1b5e20;
+            --green-border: #c8e6c9;
+            --warn-bg: #fff8e1;
+            --warn-text: #b78103;
+            --warn-border: #ffe082;
+            --danger-bg: #fde8e8;
+            --danger-text: #c81e1e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { background: #fff; color: var(--text-main); line-height: 1.5; }
+
+        /* Header */
+        header { background: var(--booking-blue); color: #fff; padding: 12px 0; }
+        .nav-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
+        .logo-title { font-size: 22px; font-weight: 700; color: #fff; text-decoration: none; display: flex; align-items: center; gap: 6px; }
+        .back-link { color: #fff; text-decoration: none; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 6px; transition: background 0.2s; }
+        .back-link:hover { background: rgba(255,255,255,0.25); }
+
+        /* Main Container */
+        .page-container { max-width: 1200px; margin: 0 auto; padding: 24px 20px 80px 20px; }
+
+        /* Breadcrumbs */
+        .breadcrumbs { font-size: 13px; color: var(--text-light); margin-bottom: 12px; display: flex; gap: 6px; align-items: center; }
+        .breadcrumbs a { color: var(--booking-blue-light); text-decoration: none; }
+
+        /* Property Header */
+        .prop-header { margin-bottom: 20px; }
+        .prop-title { font-size: 26px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; line-height: 1.25; }
+        .prop-meta-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; font-size: 13.5px; }
+        .prop-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        .badge { font-size: 11.5px; font-weight: 600; padding: 4px 10px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; }
+        .badge-instant { background: #e6f4ea; color: #137333; }
+        .badge-verified { background: #e8f0fe; color: #1a73e8; }
+        .badge-ai { background: #fef7e0; color: #b06000; border: 1px solid #fce8b2; }
+
+        .prop-rating-pill { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+        .score-box { background: var(--booking-blue); color: #fff; font-size: 14px; font-weight: 700; padding: 4px 8px; border-radius: 4px 4px 4px 0; }
+
+        /* Gallery Grid (Airbnb / Booking style: 1 big + 4 small) */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            grid-template-rows: 210px 210px;
+            gap: 10px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 32px;
+            position: relative;
+        }
+        .gallery-item { position: relative; overflow: hidden; cursor: pointer; background: #e2e8f0; }
+        .gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+        .gallery-item:hover img { transform: scale(1.04); }
+        .gallery-main { grid-row: span 2; }
+        .all-photos-btn {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            background: #fff;
+            color: var(--text-main);
+            border: 1px solid var(--text-main);
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .all-photos-btn:hover { background: #f8fafc; }
+
+        /* Layout Grid: Content (Left) + Booking Sticky Widget (Right) */
+        .content-grid { display: grid; grid-template-columns: 1fr 360px; gap: 36px; align-items: start; }
+
+        /* Chips Specs */
+        .specs-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding: 16px 0;
+            border-top: 1px solid var(--card-border);
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .spec-item { display: flex; align-items: center; gap: 6px; }
+
+        /* Host Profile Box */
+        .host-box {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 20px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            margin-bottom: 28px;
+        }
+        .host-avatar { width: 58px; height: 58px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        .host-avatar-fallback { width: 58px; height: 58px; border-radius: 50%; background: var(--booking-blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; }
+        .host-info h4 { font-size: 15.5px; font-weight: 700; margin-bottom: 2px; }
+        .host-meta { font-size: 13px; color: var(--text-light); }
+
+        /* AI Aspect Sentiment Insights Box */
+        .ai-insights-box {
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+            border: 1.5px solid #bbf7d0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.08);
+        }
+        .ai-insights-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+        .ai-insights-header h3 { font-size: 16px; font-weight: 700; color: #166534; }
+        .ai-insights-list { display: flex; flex-direction: column; gap: 10px; }
+        .ai-aspect-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13.5px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            line-height: 1.4;
+        }
+        .ai-aspect-row.positive { background: rgba(34, 197, 94, 0.12); color: #14532d; border-left: 3px solid #22c55e; }
+        .ai-aspect-row.warning { background: rgba(239, 68, 68, 0.1); color: #991b1b; border-left: 3px solid #ef4444; }
+
+        /* Section Headings */
+        .section-title { font-size: 19px; font-weight: 700; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--card-border); }
+
+        /* Description */
+        .description-text { font-size: 14.5px; line-height: 1.65; color: #334155; margin-bottom: 32px; white-space: pre-line; }
+
+        /* Amenities Grid */
+        .amenities-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 36px; }
+        .amenity-chip { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-main); }
+        .amenity-icon { font-size: 18px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: #f1f5f9; border-radius: 6px; }
+
+        /* House Rules */
+        .rules-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 36px; }
+        .rules-table td { padding: 10px 14px; border-bottom: 1px solid var(--card-border); }
+        .rules-table td:first-child { font-weight: 600; width: 40%; color: var(--text-secondary); }
+
+        /* Reviews Section */
+        .reviews-header-block { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .reviews-count-badge { font-size: 14px; color: var(--text-light); }
+
+        .reviews-list { display: flex; flex-direction: column; gap: 18px; margin-bottom: 40px; }
+        .review-card {
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 18px 20px;
+            background: #fff;
+            transition: box-shadow 0.2s;
+        }
+        .review-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .review-author-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .reviewer-info { display: flex; align-items: center; gap: 12px; }
+        .reviewer-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+        .reviewer-fallback { width: 44px; height: 44px; border-radius: 50%; background: #006ce4; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
+        .reviewer-name { font-size: 14.5px; font-weight: 700; }
+        .reviewer-city { font-size: 12px; color: var(--text-light); }
+        .review-rating-score { background: var(--booking-blue); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 13px; font-weight: 700; }
+
+        .review-text-pros { background: var(--green-bg); color: var(--green-text); padding: 10px 14px; border-radius: 6px; font-size: 13.5px; margin-bottom: 8px; line-height: 1.45; }
+        .review-text-cons { background: #fff5f5; color: #c53030; padding: 10px 14px; border-radius: 6px; font-size: 13.5px; margin-bottom: 8px; line-height: 1.45; }
+        .review-comment { font-size: 13.5px; color: var(--text-main); margin-bottom: 8px; line-height: 1.5; }
+        .review-date { font-size: 12px; color: var(--text-light); }
+
+        /* Sticky Booking Widget (Right Column) */
+        .booking-widget {
+            position: sticky;
+            top: 24px;
+            background: #fff;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        }
+        .widget-price-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+        .widget-price { font-size: 24px; font-weight: 700; color: var(--text-main); }
+        .widget-price span { font-size: 14px; font-weight: 400; color: var(--text-light); }
+
+        .widget-dates-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .widget-date-row { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #cbd5e1; }
+        .widget-cell { padding: 9px 12px; font-size: 12px; }
+        .widget-cell label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-light); display: block; }
+        .widget-cell select, .widget-cell input { border: none; width: 100%; font-size: 13px; font-weight: 600; outline: none; background: transparent; }
+
+        .calc-breakdown { font-size: 13.5px; color: var(--text-secondary); margin-bottom: 18px; display: flex; flex-direction: column; gap: 8px; }
+        .calc-row { display: flex; justify-content: space-between; }
+        .calc-total { font-size: 16px; font-weight: 700; color: var(--text-main); border-top: 1px solid var(--card-border); padding-top: 10px; margin-top: 4px; }
+
+        .btn-reserve {
+            width: 100%;
+            background: var(--booking-blue-light);
+            color: #fff;
+            border: none;
+            padding: 13px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 10px;
+        }
+        .btn-reserve:hover { background: #0054b4; }
+        .cancel-hint { font-size: 12px; color: #008234; text-align: center; font-weight: 500; }
+
+        /* Lightbox Modal */
+        .lightbox-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.92);
+            z-index: 3000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .lightbox-img { max-width: 90vw; max-height: 80vh; object-fit: contain; border-radius: 6px; }
+        .lightbox-close { position: absolute; top: 20px; right: 26px; color: #fff; font-size: 32px; cursor: pointer; border: none; background: transparent; }
+
+        @media (max-width: 900px) {
+            .content-grid { grid-template-columns: 1fr; }
+            .gallery-grid { grid-template-columns: 1fr 1fr; grid-template-rows: 180px 140px; }
+            .booking-widget { position: static; margin-top: 30px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="nav-container">
+            <a href="/" class="logo-title">
+                <span>Суточно</span><span style="color:var(--booking-yellow);">.AI</span>
+            </a>
+            <a href="/" class="back-link">
+                <span>←</span>
+                <span>Вернуться к поиску</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="page-container" id="pageApp">
+        <div id="loadingIndicator" style="text-align:center; padding: 60px; font-size: 16px; color: var(--text-light);">
+            Загрузка данных объекта...
+        </div>
+
+        <div id="propertyContent" style="display:none;">
+            <!-- Breadcrumbs -->
+            <div class="breadcrumbs">
+                <a href="/">Главная</a>
+                <span>›</span>
+                <span id="bcCity">Город</span>
+                <span>›</span>
+                <span id="bcDistrict">Район</span>
+                <span>›</span>
+                <span id="bcTitle" style="color:var(--text-main); font-weight:500;">Название</span>
+            </div>
+
+            <!-- Property Title & Badges -->
+            <div class="prop-header">
+                <h1 class="prop-title" id="propTitle"></h1>
+                <div class="prop-meta-row">
+                    <div class="prop-badges">
+                        <span class="badge badge-instant" id="badgeInstant">⚡ Мгновенное бронирование</span>
+                        <span class="badge badge-verified">🛡️ Проверено Суточно.ру</span>
+                        <span class="badge badge-ai">✨ ИИ-анализ отзывов активен</span>
+                        <span style="color:var(--text-secondary); font-size:13px;" id="propAddress">📍</span>
+                    </div>
+
+                    <div class="prop-rating-pill">
+                        <span id="ratingCategory">Превосходно</span>
+                        <span style="color:var(--text-light); font-weight:400;" id="reviewsCountBadge">• 0 отзывов</span>
+                        <span class="score-box" id="ratingScoreBox">9.8</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Photos Gallery Grid (1 big + 4 small) -->
+            <div class="gallery-grid" id="galleryGrid">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Main 2-column layout -->
+            <div class="content-grid">
+                <!-- Left Column -->
+                <div>
+                    <!-- Key Specs Bar -->
+                    <div class="specs-bar" id="specsBar">
+                        <!-- Injected via JS -->
+                    </div>
+
+                    <!-- Host Info Card -->
+                    <div class="host-box" id="hostBox">
+                        <!-- Injected via JS -->
+                    </div>
+
+                    <!-- AI Aspect Sentiment Analysis Box -->
+                    <div class="ai-insights-box">
+                        <div class="ai-insights-header">
+                            <span style="font-size:22px;">🤖</span>
+                            <h3>Что ИИ выяснил из реальных отзывов гостей:</h3>
+                        </div>
+                        <div class="ai-insights-list" id="aiAspectsList">
+                            <!-- Injected via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <h2 class="section-title">Об этом жилье</h2>
+                    <div class="description-text" id="propDesc"></div>
+
+                    <!-- Beds Configuration -->
+                    <h2 class="section-title">Спальные места</h2>
+                    <div style="display:flex; gap:16px; margin-bottom:32px;" id="bedsBox">
+                        <!-- Injected via JS -->
+                    </div>
+
+                    <!-- Amenities -->
+                    <h2 class="section-title">Удобства и оснащение</h2>
+                    <div class="amenities-grid" id="amenitiesGrid">
+                        <!-- Injected via JS -->
+                    </div>
+
+                    <!-- House Rules Table -->
+                    <h2 class="section-title">Правила проживания (Суточно.ру)</h2>
+                    <table class="rules-table" id="rulesTable">
+                        <!-- Injected via JS -->
+                    </table>
+
+                    <!-- Reviews Section with Real Avatars & Strict Count -->
+                    <div class="reviews-header-block">
+                        <h2 class="section-title" style="margin-bottom:0; border-bottom:none;">Отзывы гостей</h2>
+                        <span class="reviews-count-badge" id="reviewsHeaderCount">Всего: 0 отзывов</span>
+                    </div>
+
+                    <div class="reviews-list" id="reviewsList">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
+                <!-- Right Column: Sticky Booking Widget -->
+                <aside>
+                    <div class="booking-widget">
+                        <div class="widget-price-row">
+                            <div class="widget-price">
+                                <span id="widgetPrice">0</span> <span>/ сутки</span>
+                            </div>
+                            <div class="prop-rating-pill">
+                                <span style="font-size:12px; color:var(--text-light);" id="widgetRevCount">0 отзывов</span>
+                                <span class="score-box" id="widgetScoreBox">9.8</span>
+                            </div>
+                        </div>
+
+                        <div class="widget-dates-box">
+                            <div class="widget-date-row">
+                                <div class="widget-cell">
+                                    <label>Заезд</label>
+                                    <input type="text" value="Пятница, 14:00" readonly>
+                                </div>
+                                <div class="widget-cell" style="border-left:1px solid #cbd5e1;">
+                                    <label>Выезд</label>
+                                    <input type="text" value="Понедельник, 12:00" readonly>
+                                </div>
+                            </div>
+                            <div class="widget-cell">
+                                <label>Количество ночей</label>
+                                <select id="nightsSelect" onchange="calculatePrice()">
+                                    <option value="1">1 ночь</option>
+                                    <option value="2">2 ночи</option>
+                                    <option value="3" selected>3 ночи</option>
+                                    <option value="5">5 ночей</option>
+                                    <option value="7">7 ночей (скидка 5%)</option>
+                                    <option value="14">14 ночей (скидка 10%)</option>
+                                </select>
+                            </div>
+                            <div class="widget-cell" style="border-top:1px solid #cbd5e1;">
+                                <label>Гости</label>
+                                <select id="widgetGuests">
+                                    <option value="1">1 гость</option>
+                                    <option value="2" selected>2 взрослых</option>
+                                    <option value="3">3 гостей</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Price Breakdown -->
+                        <div class="calc-breakdown" id="calcBreakdown">
+                            <div class="calc-row">
+                                <span id="calcNightsLabel">6 500 ₽ × 3 ночи</span>
+                                <span id="calcNightsTotal">19 500 ₽</span>
+                            </div>
+                            <div class="calc-row">
+                                <span>Сбор за уборку</span>
+                                <span id="calcCleaning">1 500 ₽</span>
+                            </div>
+                            <div class="calc-row">
+                                <span>Возвратный залог</span>
+                                <span id="calcDeposit">5 000 ₽</span>
+                            </div>
+                            <div class="calc-row calc-total">
+                                <span>Итого к оплате</span>
+                                <span id="calcGrandTotal">21 000 ₽</span>
+                            </div>
+                            <div class="calc-row" style="font-size:12px; color:#166534; background:#f0fdf4; padding:6px 8px; border-radius:4px;">
+                                <span>Предоплата на сайте (20%):</span>
+                                <b id="calcPrepay">4 200 ₽</b>
+                            </div>
+                        </div>
+
+                        <button class="btn-reserve" onclick="bookNow()">Забронировать</button>
+                        <div class="cancel-hint">✓ Бесплатная отмена за 48 часов до заезда</div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Photo Lightbox -->
+    <div class="lightbox-modal" id="lightboxModal" onclick="closeLightbox()">
+        <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+        <img src="" id="lightboxImg" class="lightbox-img" onclick="event.stopPropagation()">
+    </div>
+
+    <script>
+        let propertyData = null;
+
+        // Extract propertyId from URL path: /property/{id}
+        const pathParts = window.location.pathname.split('/');
+        const propertyId = pathParts[pathParts.length - 1] || 'prop_sochi_panoramic_sea';
+
+        window.addEventListener("DOMContentLoaded", () => {
+            loadPropertyDetails();
+        });
+
+        async function loadPropertyDetails() {
+            try {
+                const res = await fetch(`/api/properties/${propertyId}`);
+                if (!res.ok) {
+                    document.getElementById("loadingIndicator").innerText = "Объект не найден.";
+                    return;
+                }
+                const data = await res.json();
+                propertyData = data;
+                renderPage(data);
+            } catch (err) {
+                document.getElementById("loadingIndicator").innerText = "Ошибка загрузки данных.";
+            }
+        }
+
+        function renderPage(data) {
+            const p = data.property;
+            const u = data.units[0] || {};
+            const host = p.host || {};
+
+            document.title = `${p.title} — Суточно.AI & Booking`;
+
+            // Breadcrumbs & Header
+            document.getElementById("bcCity").innerText = p.city;
+            document.getElementById("bcDistrict").innerText = p.district || 'Центр';
+            document.getElementById("bcTitle").innerText = p.title;
+
+            document.getElementById("propTitle").innerText = p.title;
+            document.getElementById("propAddress").innerText = `📍 г. ${p.city}, ${p.address}${p.distance_to_sea_m ? ` • ${p.distance_to_sea_m} м до моря` : ''}`;
+
+            const rating = parseFloat(p.rating_total || 9.5).toFixed(1);
+            document.getElementById("ratingScoreBox").innerText = rating;
+            document.getElementById("widgetScoreBox").innerText = rating;
+            document.getElementById("ratingCategory").innerText = rating >= 9.5 ? 'Превосходно' : (rating >= 8.5 ? 'Очень хорошо' : 'Хорошо');
+            
+            // STRICT MATCH: Real Reviews Count
+            const revCount = data.reviews.length;
+            document.getElementById("reviewsCountBadge").innerText = `• ${revCount} ${getReviewWord(revCount)}`;
+            document.getElementById("reviewsHeaderCount").innerText = `Всего: ${revCount} ${getReviewWord(revCount)}`;
+            document.getElementById("widgetRevCount").innerText = `${revCount} ${getReviewWord(revCount)}`;
+
+            if (!p.instant_booking) {
+                document.getElementById("badgeInstant").style.display = "none";
+            }
+
+            // Photo Gallery Grid (1 big on left + up to 4 on right)
+            renderGallery(data.photos);
+
+            // Specs Bar
+            document.getElementById("specsBar").innerHTML = `
+                <div class="spec-item">📐 <b>${u.total_area_sqm || 40} м²</b></div>
+                <div class="spec-item">🏢 <b>${u.floor || 1} этаж</b> из ${u.total_floors || 1} ${u.has_elevator ? '(лифт)' : ''}</div>
+                <div class="spec-item">👥 <b>до ${u.max_guests || 2} гостей</b></div>
+                <div class="spec-item">🛏️ <b>${u.bedrooms_count || 1} комната</b></div>
+                <div class="spec-item">🚿 <b>1 санузел</b></div>
+            `;
+
+            // Host Profile
+            const hostInitials = (host.first_name ? host.first_name[0] : 'Х') + (host.last_name ? host.last_name[0] : '');
+            document.getElementById("hostBox").innerHTML = `
+                ${host.avatar_url ? 
+                    `<img src="${host.avatar_url}" alt="${host.first_name}" class="host-avatar">` :
+                    `<div class="host-avatar-fallback">${hostInitials}</div>`
+                }
+                <div class="host-info">
+                    <h4>Хозяин жилья: ${host.first_name || 'Хозяин'} ${host.last_name || ''} ${host.is_verified_host ? '✓' : ''}</h4>
+                    <div class="host-meta">
+                        ⭐ ${host.host_rating || 4.9} • Отвечает за ${host.response_time_minutes || 10} мин • ${host.response_rate_pct || 99}% ответов • На Суточно.ру с 2022 года
+                    </div>
+                </div>
+            `;
+
+            // AI Aspect Sentiment Extractions
+            const aspectsContainer = document.getElementById("aiAspectsList");
+            if (data.ai_aspects && data.ai_aspects.length > 0) {
+                aspectsContainer.innerHTML = data.ai_aspects.map(asp => {
+                    const isPos = asp.sentiment === 'positive';
+                    return `
+                        <div class="ai-aspect-row ${isPos ? 'positive' : 'warning'}">
+                            <span>${isPos ? '👍' : '⚠️'}</span>
+                            <div>
+                                <b>${formatAspectName(asp.aspect_code)}:</b> «${asp.excerpt}»
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                aspectsContainer.innerHTML = `<div class="ai-aspect-row positive"><span>👍</span><div>Все параметры объекта проверены, замечаний нет.</div></div>`;
+            }
+
+            // Description
+            document.getElementById("propDesc").innerText = p.description;
+
+            // Beds Box
+            let bedsConfig = [];
+            try {
+                bedsConfig = JSON.parse(u.beds_configuration || "[]");
+            } catch(e) {
+                bedsConfig = [{"type": "Двуспальная кровать", "count": 1}];
+            }
+            document.getElementById("bedsBox").innerHTML = bedsConfig.map(b => `
+                <div style="border:1px solid var(--card-border); border-radius:8px; padding:12px 18px; display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:22px;">🛏️</span>
+                    <div>
+                        <div style="font-weight:600; font-size:14px;">${b.type}</div>
+                        <div style="font-size:12px; color:var(--text-light);">${b.count} шт.</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Amenities Categorized Grid
+            const amenitiesGrid = document.getElementById("amenitiesGrid");
+            amenitiesGrid.innerHTML = data.amenities.map(am => `
+                <div class="amenity-chip">
+                    <span class="amenity-icon">${am.icon_name || '✓'}</span>
+                    <span>${am.name_ru}</span>
+                </div>
+            `).join('');
+
+            // House Rules Table
+            document.getElementById("rulesTable").innerHTML = `
+                <tr><td>Заезд и выезд</td><td>Заезд с ${p.check_in_from || '14:00'}, выезд до ${p.check_out_to || '12:00'}</td></tr>
+                <tr><td>Бесконтактное заселение</td><td>${p.instant_booking ? 'Да, электронный смарт-замок (заезд 24/7)' : 'По согласованию с хозяином'}</td></tr>
+                <tr><td>Страховой залог</td><td>${p.deposit_amount ? p.deposit_amount.toLocaleString('ru-RU') + ' ₽ (возвращается в день выезда)' : 'Без залога'}</td></tr>
+                <tr><td>Курение</td><td>${p.smoking_allowed ? 'Разрешено на балконе' : '❌ Запрещено на всей территории (штраф 5 000 ₽)'}</td></tr>
+                <tr><td>Шумные вечеринки</td><td>${p.parties_allowed ? 'Разрешены' : '❌ Запрещены'}</td></tr>
+                <tr><td>Проживание с питомцами</td><td>${p.pets_allowed ? '🐾 Разрешено по предварительному согласованию' : '❌ Не предусмотрено'}</td></tr>
+                <tr><td>Часы тишины</td><td>С ${p.quiet_hours_start || '22:00'} до ${p.quiet_hours_end || '08:00'}</td></tr>
+            `;
+
+            // Reviews List with Avatars and Details
+            renderReviews(data.reviews);
+
+            // Widget Price calculation
+            calculatePrice();
+
+            // Show page
+            document.getElementById("loadingIndicator").style.display = "none";
+            document.getElementById("propertyContent").style.display = "block";
+        }
+
+        function renderGallery(photos) {
+            const grid = document.getElementById("galleryGrid");
+            if (!photos || photos.length === 0) return;
+
+            let html = `
+                <div class="gallery-item gallery-main" onclick="openLightbox('${photos[0].photo_url}')">
+                    <img src="${photos[0].photo_url}" alt="Фото">
+                </div>
+            `;
+
+            for (let i = 1; i < Math.min(photos.length, 5); i++) {
+                html += `
+                    <div class="gallery-item" onclick="openLightbox('${photos[i].photo_url}')">
+                        <img src="${photos[i].photo_url}" alt="Фото">
+                    </div>
+                `;
+            }
+
+            html += `<button class="all-photos-btn" onclick="openLightbox('${photos[0].photo_url}')">📷 Показать все ${photos.length} фото</button>`;
+            grid.innerHTML = html;
+        }
+
+        function renderReviews(reviews) {
+            const list = document.getElementById("reviewsList");
+            if (!reviews || reviews.length === 0) {
+                list.innerHTML = `<p style="color:var(--text-light);">Отзывов пока нет.</p>`;
+                return;
+            }
+
+            list.innerHTML = reviews.map(r => {
+                const initials = (r.guest_first_name ? r.guest_first_name[0] : 'Г') + (r.guest_last_name ? r.guest_last_name[0] : '');
+                const dateStr = r.created_at ? r.created_at.slice(0, 10) : 'Недавно';
+
+                return `
+                    <div class="review-card">
+                        <div class="review-author-row">
+                            <div class="reviewer-info">
+                                ${r.guest_avatar_url ? 
+                                    `<img src="${r.guest_avatar_url}" class="reviewer-avatar" alt="${r.guest_first_name}">` :
+                                    `<div class="reviewer-fallback">${initials}</div>`
+                                }
+                                <div>
+                                    <div class="reviewer-name">${r.guest_first_name} ${r.guest_last_name || ''}</div>
+                                    <div class="reviewer-city">${r.guest_city || 'Россия'} • ${dateStr}</div>
+                                </div>
+                            </div>
+                            <div class="review-rating-score">⭐ ${r.rating_overall} / 10</div>
+                        </div>
+
+                        ${r.pros_text ? `
+                            <div class="review-text-pros">
+                                <b>Понравилось:</b> ${r.pros_text}
+                            </div>
+                        ` : ''}
+
+                        ${r.cons_text ? `
+                            <div class="review-text-cons">
+                                <b>Не понравилось:</b> ${r.cons_text}
+                            </div>
+                        ` : ''}
+
+                        ${r.comment_text ? `<div class="review-comment">${r.comment_text}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function calculatePrice() {
+            if (!propertyData) return;
+            const u = propertyData.units[0] || {};
+            const p = propertyData.property;
+
+            const pricePerNight = u.base_price_night || 5000;
+            const nights = parseInt(document.getElementById("nightsSelect").value) || 3;
+            const cleaningFee = p.cleaning_fee || 1500;
+            const deposit = p.deposit_amount || 5000;
+
+            let nightsTotal = pricePerNight * nights;
+            if (nights >= 14) nightsTotal *= 0.90; // 10% discount
+            else if (nights >= 7) nightsTotal *= 0.95; // 5% discount
+
+            const grandTotal = nightsTotal + cleaningFee;
+            const prepay = Math.round(grandTotal * 0.20); // 20% online prepay on Sutochno
+
+            document.getElementById("widgetPrice").innerText = pricePerNight.toLocaleString('ru-RU') + ' ₽';
+            document.getElementById("calcNightsLabel").innerText = `${pricePerNight.toLocaleString('ru-RU')} ₽ × ${nights} ноч.`;
+            document.getElementById("calcNightsTotal").innerText = `${Math.round(nightsTotal).toLocaleString('ru-RU')} ₽`;
+            document.getElementById("calcCleaning").innerText = `${cleaningFee.toLocaleString('ru-RU')} ₽`;
+            document.getElementById("calcDeposit").innerText = `${deposit.toLocaleString('ru-RU')} ₽`;
+            document.getElementById("calcGrandTotal").innerText = `${Math.round(grandTotal).toLocaleString('ru-RU')} ₽`;
+            document.getElementById("calcPrepay").innerText = `${prepay.toLocaleString('ru-RU')} ₽`;
+        }
+
+        function bookNow() {
+            alert("Заявка на мгновенное бронирование успешно сформирована! Мы зафиксировали даты в календаре.");
+        }
+
+        function openLightbox(url) {
+            document.getElementById("lightboxImg").src = url;
+            document.getElementById("lightboxModal").style.display = "flex";
+        }
+        function closeLightbox() {
+            document.getElementById("lightboxModal").style.display = "none";
+        }
+
+        function getReviewWord(count) {
+            const mod10 = count % 10;
+            const mod100 = count % 100;
+            if (mod100 >= 11 && mod100 <= 19) return "отзывов";
+            if (mod10 === 1) return "отзыв";
+            if (mod10 >= 2 && mod10 <= 4) return "отзыва";
+            return "отзывов";
+        }
+
+        function formatAspectName(code) {
+            const map = {
+                "sea_view": "Вид на море",
+                "mountain_view": "Вид на горы",
+                "noise_street": "Уличный шум",
+                "noise_neighbors": "Звукоизоляция соседей",
+                "wifi_speed": "Скорость Wi-Fi",
+                "bed_comfort": "Удобство кровати и матраса",
+                "cleanliness": "Чистота",
+                "kitchen_amenities": "Оснащение кухни",
+                "checkin_ease": "Заселение"
+            };
+            return map[code] || code;
+        }
+    </script>
+</body>
+</html>

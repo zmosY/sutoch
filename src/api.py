@@ -20,6 +20,7 @@ app = FastAPI(
 search_engine = AISearchEngine()
 
 INDEX_HTML_PATH = os.path.join(os.path.dirname(__file__), "static", "index.html")
+PROPERTY_HTML_PATH = os.path.join(os.path.dirname(__file__), "static", "property.html")
 
 class ChatRequest(BaseModel):
     message: str
@@ -36,6 +37,13 @@ def serve_home_ui():
         with open(INDEX_HTML_PATH, "r", encoding="utf-8") as f:
             return HTMLResponse(content=f.read())
     return HTMLResponse("<h1>Frontend not found</h1>", status_code=404)
+
+@app.get("/property/{property_id}", response_class=HTMLResponse)
+def serve_property_page(property_id: str):
+    if os.path.exists(PROPERTY_HTML_PATH):
+        with open(PROPERTY_HTML_PATH, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse("<h1>Property page not found</h1>", status_code=404)
 
 @app.get("/api/status")
 def read_root():
@@ -117,30 +125,74 @@ def get_property_details(property_id: str):
         conn.close()
         raise HTTPException(status_code=404, detail="Property not found")
 
+    prop_dict = dict(prop)
+
+    # Calculate actual reviews count and rating
+    cur.execute("SELECT COUNT(*) as cnt, ROUND(AVG(rating_overall), 2) as avg_score FROM reviews WHERE property_id = ?", (property_id,))
+    stats = cur.fetchone()
+    prop_dict["reviews_count"] = stats["cnt"] if stats and stats["cnt"] is not None else 0
+    prop_dict["rating_total"] = stats["avg_score"] if stats and stats["avg_score"] is not None else prop_dict.get("rating_total", 0.0)
+
+    # Fetch host profile
+    cur.execute("""
+        SELECT id, first_name, last_name, avatar_url, city, is_verified_host, host_rating, response_rate_pct, response_time_minutes, created_at
+        FROM users WHERE id = ?
+    """, (prop_dict["host_id"],))
+    host = cur.fetchone()
+    prop_dict["host"] = dict(host) if host else None
+
+    # Fetch units
     cur.execute("SELECT * FROM property_units WHERE property_id = ?", (property_id,))
     units = [dict(u) for u in cur.fetchall()]
 
+    # Fetch photos in sort order
+    cur.execute("""
+        SELECT id, photo_url, tag, caption, is_cover, sort_order 
+        FROM property_photos 
+        WHERE property_id = ? 
+        ORDER BY is_cover DESC, sort_order ASC
+    """, (property_id,))
+    photos = [dict(ph) for ph in cur.fetchall()]
+
+    # Fetch amenities with category
     cur.execute("""
         SELECT a.code, a.category, a.name_ru, a.icon_name 
         FROM amenities a
         JOIN property_amenities pa ON a.id = pa.amenity_id
         WHERE pa.property_id = ?
+        ORDER BY a.category ASC, a.name_ru ASC
     """, (property_id,))
     amenities = [dict(a) for a in cur.fetchall()]
 
-    cur.execute("SELECT * FROM reviews WHERE property_id = ?", (property_id,))
+    # Fetch reviews with guest avatar and city
+    cur.execute("""
+        SELECT r.*, u.first_name as guest_first_name, u.last_name as guest_last_name, 
+               u.avatar_url as guest_avatar_url, u.city as guest_city
+        FROM reviews r
+        JOIN users u ON r.guest_id = u.id
+        WHERE r.property_id = ?
+        ORDER BY r.created_at DESC
+    """, (property_id,))
     reviews = [dict(r) for r in cur.fetchall()]
 
-    cur.execute("SELECT aspect_code, sentiment, confidence, excerpt FROM review_aspects WHERE property_id = ?", (property_id,))
+    # Fetch review aspects
+    cur.execute("""
+        SELECT aspect_code, sentiment, confidence, excerpt 
+        FROM review_aspects 
+        WHERE property_id = ?
+        ORDER BY sentiment ASC, aspect_code ASC
+    """, (property_id,))
     aspects = [dict(asp) for asp in cur.fetchall()]
 
+    # Fetch sentiment summary
     cur.execute("SELECT * FROM property_sentiment_summary WHERE property_id = ?", (property_id,))
     sentiment_summary = cur.fetchone()
 
     conn.close()
     return {
-        "property": dict(prop),
+        "property": prop_dict,
         "units": units,
+        "photos": photos,
         "amenities": amenities,
         "reviews": reviews,
         "ai_aspects": aspects,

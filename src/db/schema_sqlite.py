@@ -27,6 +27,7 @@ def init_db(db_path: str = DB_PATH):
         phone TEXT UNIQUE,
         first_name TEXT NOT NULL,
         last_name TEXT,
+        city TEXT DEFAULT 'Москва',
         avatar_url TEXT,
         role TEXT DEFAULT 'guest', -- 'guest', 'host', 'admin'
         is_verified_host INTEGER DEFAULT 0,

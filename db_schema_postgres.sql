@@ -17,6 +17,7 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100),
+    city VARCHAR(100) DEFAULT 'Москва',
     avatar_url TEXT,
     role user_role DEFAULT 'guest',
     is_verified_host BOOLEAN DEFAULT FALSE,

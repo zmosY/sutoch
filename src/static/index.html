@@ -642,10 +642,12 @@
             container.innerHTML = sorted.map((item, idx) => {
                 const isRecommended = idx === 0 && (item.ai_score || 0) > 80;
                 const hasWarnings = item.warnings && item.warnings.length > 0;
+                const revCount = item.reviews_count || 0;
+                const revWord = getReviewWord(revCount);
 
                 return `
                     <article class="property-card">
-                        <div class="card-photo-wrap">
+                        <div class="card-photo-wrap" onclick="location.href='/property/${item.property_id}'" style="cursor:pointer;">
                             <img src="${item.cover_photo}" alt="${item.title}" class="card-photo" loading="lazy">
                             ${isRecommended ? '<span class="photo-badge" style="background:#003580;">🏆 Выбор ИИ</span>' : ''}
                             ${item.instant_booking ? '<span class="instant-badge">⚡ Мгновенное бронирование</span>' : ''}
@@ -653,7 +655,9 @@
 
                         <div class="card-body">
                             <div>
-                                <h3 class="card-title" onclick="openDetails('${item.property_id}')">${item.title}</h3>
+                                <h3 class="card-title">
+                                    <a href="/property/${item.property_id}" style="color:inherit; text-decoration:none;">${item.title}</a>
+                                </h3>
                                 <div class="card-location">
                                     <span>📍 ${item.city}, ${item.district || ''}</span>
                                     ${item.distance_to_sea_m ? `• <b style="color:#008234;">${item.distance_to_sea_m} м до моря</b>` : ''}
@@ -682,8 +686,8 @@
                         <div class="card-pricing">
                             <div class="score-row">
                                 <div class="score-info">
-                                    <div class="score-label">${item.rating >= 4.9 ? 'Превосходно' : (item.rating >= 4.5 ? 'Очень хорошо' : 'Хорошо')}</div>
-                                    <div class="score-count">${item.reviews_count} отзывов</div>
+                                    <div class="score-label">${item.rating >= 9.0 ? 'Превосходно' : (item.rating >= 8.0 ? 'Очень хорошо' : 'Хорошо')}</div>
+                                    <div class="score-count">${revCount} ${revWord}</div>
                                 </div>
                                 <div class="score-badge">${item.rating}</div>
                             </div>
@@ -692,7 +696,7 @@
                                 <div class="price-meta">1 ночь, 2 взрослых</div>
                                 <div class="price-amount">${item.price.toLocaleString('ru-RU')} ₽</div>
                                 <div class="free-cancel">✓ Бесплатная отмена</div>
-                                <button class="book-btn" onclick="openDetails('${item.property_id}')">Подробнее</button>
+                                <a href="/property/${item.property_id}" class="book-btn" style="display:block; text-align:center; text-decoration:none;">Подробнее</a>
                             </div>
                         </div>
                     </article>
@@ -838,6 +842,15 @@
         }
         function closeModalDirect() {
             document.getElementById("detailModal").style.display = "none";
+        }
+
+        function getReviewWord(count) {
+            const mod10 = count % 10;
+            const mod100 = count % 100;
+            if (mod100 >= 11 && mod100 <= 19) return "отзывов";
+            if (mod10 === 1) return "отзыв";
+            if (mod10 >= 2 && mod10 <= 4) return "отзыва";
+            return "отзывов";
         }
     </script>
 </body>
