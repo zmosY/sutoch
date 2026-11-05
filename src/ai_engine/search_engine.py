@@ -125,7 +125,7 @@ class AISearchEngine:
         query_sql = """
             SELECT 
                 p.id, p.title, p.city, p.district, p.address, p.property_type,
-                p.distance_to_sea_m, 
+                p.latitude, p.longitude, p.distance_to_sea_m, 
                 (SELECT COUNT(*) FROM reviews WHERE property_id = p.id) as reviews_count,
                 COALESCE((SELECT ROUND(AVG(rating_overall), 2) FROM reviews WHERE property_id = p.id), p.rating_total) as rating_total,
                 p.instant_booking, p.description,
@@ -226,6 +226,8 @@ class AISearchEngine:
                 "city": r["city"],
                 "district": r["district"],
                 "address": r["address"],
+                "latitude": r["latitude"],
+                "longitude": r["longitude"],
                 "property_type": r["property_type"],
                 "price": r["base_price_night"],
                 "rating": r["rating_total"],

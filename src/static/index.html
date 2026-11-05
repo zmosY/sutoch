@@ -7,6 +7,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet Interactive Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         :root {
             --booking-blue: #003580;
@@ -148,8 +151,69 @@
         }
         .pill:hover { background: var(--booking-blue-light); color: #fff; }
 
-        /* Main Container: Sidebar + Listings */
-        .main-container { max-width: 1200px; margin: 0 auto; padding: 0 20px 60px 20px; display: grid; grid-template-columns: 280px 1fr; gap: 24px; }
+        /* Main Container: Sidebar + Listings + Map */
+        .main-container { max-width: 1440px; margin: 0 auto; padding: 0 20px 60px 20px; display: grid; grid-template-columns: 260px 1fr; gap: 20px; }
+
+        /* Split Listings Layout with Map */
+        .listings-layout { display: grid; grid-template-columns: 1fr 480px; gap: 20px; align-items: start; }
+        .listings-layout.no-map { grid-template-columns: 1fr; }
+        .listings-layout.no-map .map-column { display: none; }
+
+        .map-column {
+            position: sticky;
+            top: 20px;
+            height: calc(100vh - 40px);
+            min-height: 520px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            background: #e2e8f0;
+        }
+        #interactiveMap { width: 100%; height: 100%; z-index: 10; }
+
+        /* View Mode Toggle Buttons */
+        .view-toggle-btns { display: flex; gap: 6px; background: #e2e8f0; padding: 3px; border-radius: 6px; }
+        .view-btn { border: none; background: transparent; padding: 6px 12px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.15s; }
+        .view-btn.active { background: #fff; color: var(--booking-blue); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+        /* Custom Sutochno / Airbnb Price Marker */
+        .price-marker-pin {
+            background: #ffffff;
+            color: #1a1a1a;
+            font-weight: 700;
+            font-size: 13px;
+            padding: 5px 11px;
+            border-radius: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+            border: 1.5px solid #cbd5e1;
+            white-space: nowrap;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: inline-block;
+        }
+        .price-marker-pin:hover, .price-marker-pin.active {
+            background: var(--booking-blue);
+            color: #ffffff;
+            border-color: var(--booking-blue);
+            transform: scale(1.15);
+            z-index: 1000 !important;
+            box-shadow: 0 6px 18px rgba(0, 53, 128, 0.45);
+        }
+
+        /* Map Popup Styling */
+        .leaflet-popup-content-wrapper { padding: 0; overflow: hidden; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+        .leaflet-popup-content { margin: 0 !important; width: 230px !important; }
+        .map-popup-card { width: 230px; cursor: pointer; text-decoration: none; color: inherit; display: block; }
+        .map-popup-img { width: 100%; height: 120px; object-fit: cover; display: block; }
+        .map-popup-body { padding: 10px 12px; }
+        .map-popup-title { font-size: 13px; font-weight: 700; color: var(--booking-blue-light); margin-bottom: 4px; line-height: 1.3; }
+        .map-popup-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 12px; }
+        .map-popup-price { font-size: 15px; font-weight: 700; color: var(--text-main); }
+        .map-popup-score { background: var(--booking-blue); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+        .map-popup-btn { display: block; text-align: center; background: var(--booking-blue-light); color: #fff; padding: 6px 0; border-radius: 4px; font-size: 12px; font-weight: 600; margin-top: 8px; text-decoration: none; }
+        .map-popup-btn:hover { background: #0054b4; }
 
         /* Filter Sidebar */
         .sidebar { background: #fff; border-radius: 8px; border: 1px solid var(--card-border); padding: 18px; height: fit-content; }
@@ -519,15 +583,29 @@
                     <h2 class="listings-count" id="resultsCount">Найдено вариантов</h2>
                     <div id="aiFilterFeedback" style="font-size: 13px; color: var(--booking-blue-light); font-weight: 500; margin-top: 3px;"></div>
                 </div>
-                <select class="sort-select" id="sortSelect" onchange="renderCards()">
-                    <option value="ai">По рекомендации ИИ</option>
-                    <option value="price_asc">Сначала дешевле</option>
-                    <option value="rating_desc">По оценке гостей</option>
-                </select>
+
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div class="view-toggle-btns">
+                        <button class="view-btn active" id="btnSplitView" onclick="setViewMode('split')">🗺️ Список и карта</button>
+                        <button class="view-btn" id="btnListView" onclick="setViewMode('list')">📋 Только список</button>
+                    </div>
+
+                    <select class="sort-select" id="sortSelect" onchange="renderCards()">
+                        <option value="ai">По рекомендации ИИ</option>
+                        <option value="price_asc">Сначала дешевле</option>
+                        <option value="rating_desc">По оценке гостей</option>
+                    </select>
+                </div>
             </div>
 
-            <div id="cardsList">
-                <!-- Rendered dynamically via JS -->
+            <div class="listings-layout" id="listingsLayout">
+                <div id="cardsList">
+                    <!-- Rendered dynamically via JS -->
+                </div>
+
+                <div class="map-column" id="mapColumn">
+                    <div id="interactiveMap"></div>
+                </div>
             </div>
         </main>
     </div>
@@ -646,7 +724,7 @@
                 const revWord = getReviewWord(revCount);
 
                 return `
-                    <article class="property-card">
+                    <article class="property-card" id="card_${item.property_id}" onmouseenter="highlightPin('${item.property_id}')" onmouseleave="unhighlightPin('${item.property_id}')">
                         <div class="card-photo-wrap" onclick="location.href='/property/${item.property_id}'" style="cursor:pointer;">
                             <img src="${item.cover_photo}" alt="${item.title}" class="card-photo" loading="lazy">
                             ${isRecommended ? '<span class="photo-badge" style="background:#003580;">🏆 Выбор ИИ</span>' : ''}
@@ -661,6 +739,7 @@
                                 <div class="card-location">
                                     <span>📍 ${item.city}, ${item.district || ''}</span>
                                     ${item.distance_to_sea_m ? `• <b style="color:#008234;">${item.distance_to_sea_m} м до моря</b>` : ''}
+                                    <span onclick="focusPropertyOnMap('${item.property_id}')" style="cursor:pointer; color:var(--booking-blue-light); font-weight:600; margin-left:8px;">📍 На карте</span>
                                 </div>
                                 <div class="card-amenities">${item.amenities_names}</div>
                             </div>
@@ -702,6 +781,141 @@
                     </article>
                 `;
             }).join('');
+
+            // Synchronize interactive map markers
+            updateMapMarkers(sorted);
+        }
+
+        /* Leaflet Interactive Map Logic (Sutochno / Airbnb Style) */
+        let map = null;
+        let markersLayer = null;
+        let currentViewMode = 'split'; // 'split' or 'list'
+
+        function initMapIfNeeded() {
+            if (map) return;
+            const mapContainer = document.getElementById("interactiveMap");
+            if (!mapContainer) return;
+
+            map = L.map('interactiveMap', { scrollWheelZoom: true }).setView([43.5855, 39.7231], 11);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 18,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            markersLayer = L.featureGroup().addTo(map);
+        }
+
+        function updateMapMarkers(items) {
+            initMapIfNeeded();
+            if (!markersLayer) return;
+
+            markersLayer.clearLayers();
+            const bounds = [];
+
+            items.forEach(item => {
+                if (!item.latitude || !item.longitude) return;
+
+                const lat = parseFloat(item.latitude);
+                const lng = parseFloat(item.longitude);
+                bounds.push([lat, lng]);
+
+                const priceStr = Math.round(item.price).toLocaleString('ru-RU') + ' ₽';
+                const icon = L.divIcon({
+                    className: 'price-pin-wrapper',
+                    html: `<div class="price-marker-pin" id="pin_${item.property_id}">${priceStr}</div>`,
+                    iconSize: [85, 30],
+                    iconAnchor: [42, 15]
+                });
+
+                const marker = L.marker([lat, lng], { icon: icon });
+                
+                const popupContent = `
+                    <a href="/property/${item.property_id}" class="map-popup-card">
+                        <img src="${item.cover_photo}" class="map-popup-img" alt="${item.title}">
+                        <div class="map-popup-body">
+                            <div class="map-popup-title">${item.title}</div>
+                            <div style="font-size:11.5px; color:#595959;">📍 ${item.city}, ${item.district || ''}</div>
+                            <div class="map-popup-meta">
+                                <span class="map-popup-price">${priceStr} <span style="font-size:11px; font-weight:400; color:#717171;">/ ночь</span></span>
+                                <span class="map-popup-score">⭐ ${item.rating}</span>
+                            </div>
+                            <div class="map-popup-btn">Перейти к жилью →</div>
+                        </div>
+                    </a>
+                `;
+                marker.bindPopup(popupContent, { maxWidth: 240 });
+
+                marker.on('click', () => {
+                    highlightPin(item.property_id);
+                    const card = document.getElementById(`card_${item.property_id}`);
+                    if (card) {
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        card.style.borderColor = 'var(--booking-blue-light)';
+                        card.style.boxShadow = '0 0 0 2px rgba(0, 108, 228, 0.3)';
+                        setTimeout(() => {
+                            card.style.borderColor = '';
+                            card.style.boxShadow = '';
+                        }, 2000);
+                    }
+                });
+
+                markersLayer.addLayer(marker);
+            });
+
+            if (bounds.length > 0 && map) {
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+            }
+        }
+
+        function focusPropertyOnMap(propertyId) {
+            initMapIfNeeded();
+            if (!map) return;
+            const item = currentResults.find(i => i.property_id === propertyId);
+            if (item && item.latitude && item.longitude) {
+                if (currentViewMode === 'list') {
+                    setViewMode('split');
+                }
+                map.flyTo([item.latitude, item.longitude], 15, { duration: 1.2 });
+                highlightPin(propertyId);
+                setTimeout(() => {
+                    markersLayer.eachLayer(layer => {
+                        const latLng = layer.getLatLng();
+                        if (Math.abs(latLng.lat - item.latitude) < 0.0001 && Math.abs(latLng.lng - item.longitude) < 0.0001) {
+                            layer.openPopup();
+                        }
+                    });
+                }, 1200);
+            }
+        }
+
+        function highlightPin(propertyId) {
+            const el = document.getElementById(`pin_${propertyId}`);
+            if (el) el.classList.add('active');
+        }
+
+        function unhighlightPin(propertyId) {
+            const el = document.getElementById(`pin_${propertyId}`);
+            if (el) el.classList.remove('active');
+        }
+
+        function setViewMode(mode) {
+            currentViewMode = mode;
+            const layout = document.getElementById("listingsLayout");
+            const btnSplit = document.getElementById("btnSplitView");
+            const btnList = document.getElementById("btnListView");
+
+            if (mode === 'list') {
+                layout.classList.add("no-map");
+                btnList.classList.add("active");
+                btnSplit.classList.remove("active");
+            } else {
+                layout.classList.remove("no-map");
+                btnSplit.classList.add("active");
+                btnList.classList.remove("active");
+                setTimeout(() => {
+                    if (map) map.invalidateSize();
+                }, 200);
+            }
         }
 
         function applyFilters() {
