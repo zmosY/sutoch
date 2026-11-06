@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кабинет хозяина — Суточно & Booking Экстранет</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #003580;
+            --accent-blue: #006ce4;
+            --bg-gray: #f4f6f8;
+            --card-border: #e2e8f0;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --success: #16a34a;
+            --warning: #d97706;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
+        body { background: var(--bg-gray); color: var(--text-dark); line-height: 1.5; }
+
+        /* Header */
+        header { background: var(--primary-blue); color: #fff; padding: 14px 0; }
+        .nav-wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 20px; font-weight: 700; color: #fff; text-decoration: none; display: flex; align-items: center; gap: 8px; }
+        .nav-links { display: flex; gap: 12px; }
+        .nav-link { color: #fff; text-decoration: none; font-size: 14px; font-weight: 500; padding: 6px 14px; border-radius: 6px; background: rgba(255,255,255,0.15); transition: 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.25); }
+
+        /* Main Container */
+        .container { max-width: 1200px; margin: 24px auto 60px auto; padding: 0 20px; }
+
+        /* Top Bar: Host Selector */
+        .host-bar { background: #fff; border-radius: 10px; padding: 16px 20px; border: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
+        .host-info { display: flex; align-items: center; gap: 14px; }
+        .host-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-blue); }
+        .host-name { font-size: 18px; font-weight: 700; }
+        .host-role { font-size: 13px; color: var(--text-muted); }
+        .host-select { padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; font-weight: 500; cursor: pointer; }
+
+        /* Stat Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+        .stat-card { background: #fff; border-radius: 10px; padding: 20px; border: 1px solid var(--card-border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .stat-label { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-bottom: 6px; }
+        .stat-val { font-size: 26px; font-weight: 700; color: var(--text-dark); }
+        .stat-sub { font-size: 12px; color: var(--success); margin-top: 4px; font-weight: 500; }
+
+        /* Section Cards */
+        .section-card { background: #fff; border-radius: 10px; padding: 22px; border: 1px solid var(--card-border); margin-bottom: 28px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9; }
+        .section-title { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { text-align: left; padding: 10px 12px; background: #f8fafc; color: var(--text-muted); font-weight: 600; font-size: 12.5px; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        tr:hover td { background: #f8fafc; }
+
+        /* Badges */
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-success { background: #dcfce7; color: #15803d; }
+        .badge-warning { background: #fef3c7; color: #b45309; }
+        .badge-info { background: #e0f2fe; color: #0369a1; }
+
+        /* Message Bubbles */
+        .message-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+        .message-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+        .message-text { font-size: 14px; color: var(--text-dark); }
+        .reply-box { margin-top: 8px; font-size: 13.5px; background: #eff6ff; padding: 10px; border-radius: 6px; border-left: 3px solid var(--accent-blue); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="nav-wrap">
+        <a href="/" class="logo">🏨 Суточно & Booking Экстранет</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">🔍 Поиск жилья (Гость)</a>
+            <a href="/docs" class="nav-link" target="_blank">📚 Swagger API</a>
+        </div>
+    </div>
+</header>
+
+<div class="container">
+    <!-- Top Host Bar -->
+    <div class="host-bar">
+        <div class="host-info">
+            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80" alt="Host Avatar" class="host-avatar" id="hostAvatar">
+            <div>
+                <div class="host-name" id="hostName">Елена Смирнова</div>
+                <div class="host-role" id="hostEmail">host_elena@sutoch.ru • Хозяин (Суперхост)</div>
+            </div>
+        </div>
+        <div>
+            <label style="font-size: 13px; color: var(--text-muted); margin-right: 8px;">Сменить хозяина:</label>
+            <select class="host-select" id="hostSelector" onchange="loadHostDashboard(this.value)">
+                <option value="1">Елена Смирнова (Сочи, ID 1)</option>
+                <option value="2">Максим Волков (Санкт-Петербург, ID 2)</option>
+                <option value="3">Ольга Кузнецова (Москва, ID 3)</option>
+                <option value="4">Александр Морозов (Зеленоградск/Рощино, ID 4)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Объектов в базе</div>
+            <div class="stat-val" id="statPropsCount">1</div>
+            <div class="stat-sub">✓ Все активны и доступны</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Всего бронирований</div>
+            <div class="stat-val" id="statBookingsCount">2</div>
+            <div class="stat-sub">1 завершено, 1 подтверждено</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Суммарный доход</div>
+            <div class="stat-val" id="statTotalIncome">75 000 ₽</div>
+            <div class="stat-sub">+100% выплат без задержек</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Рейтинг хозяина</div>
+            <div class="stat-val">⭐ 4.95</div>
+            <div class="stat-sub">100% подтвержденных отзывов</div>
+        </div>
+    </div>
+
+    <!-- Properties Table -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="section-title">🏠 Мои объекты недвижимости (таблица Properties)</div>
+            <span class="badge badge-info">Синхронизировано с базой</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Название объекта</th>
+                    <th>Тип</th>
+                    <th>Адрес</th>
+                    <th>Цена за сутки</th>
+                    <th>Вместимость</th>
+                    <th>Статус</th>
+                    <th>Действие</th>
+                </tr>
+            </thead>
+            <tbody id="propertiesTableBody">
+                <tr><td colspan="8" style="text-align:center;">Загрузка данных...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Bookings Table -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="section-title">📅 Входящие бронирования (таблица Bookings)</div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Бронь #</th>
+                    <th>Объект</th>
+                    <th>Гость</th>
+                    <th>Заезд — Выезд</th>
+                    <th>Сумма</th>
+                    <th>Статус брони</th>
+                </tr>
+            </thead>
+            <tbody id="bookingsTableBody">
+                <tr><td colspan="6" style="text-align:center;">Загрузка...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Messages Section -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="section-title">💬 Переписка с гостями (таблицы Chats & Messages)</div>
+        </div>
+        <div id="messagesList">
+            <p style="color:var(--text-muted);">Загрузка сообщений...</p>
+        </div>
+    </div>
+
+    <!-- Reviews Section -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="section-title">⭐ Отзывы гостей и ответы хозяина (таблица Reviews)</div>
+        </div>
+        <div id="reviewsList">
+            <p style="color:var(--text-muted);">Загрузка отзывов...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadHostDashboard(hostId = 1) {
+        try {
+            const resp = await fetch(`/api/host/dashboard?host_id=${hostId}`);
+            const data = await resp.json();
+
+            // Set host profile
+            document.getElementById("hostName").innerText = `${data.host.first_name} ${data.host.last_name}`;
+            document.getElementById("hostEmail").innerText = `${data.host.email} • Телефон: ${data.host.phone || 'не указан'}`;
+            
+            // Set stats
+            document.getElementById("statPropsCount").innerText = data.properties.length;
+            document.getElementById("statBookingsCount").innerText = data.bookings.length;
+            const totalSum = data.bookings.reduce((acc, b) => acc + (b.total_price || 0), 0);
+            document.getElementById("statTotalIncome").innerText = totalSum.toLocaleString('ru-RU') + " ₽";
+
+            // Render properties
+            const propsTbody = document.getElementById("propertiesTableBody");
+            if (data.properties.length === 0) {
+                propsTbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#64748b;">У этого пользователя пока нет добавленных объектов.</td></tr>`;
+            } else {
+                propsTbody.innerHTML = data.properties.map(p => `
+                    <tr>
+                        <td><b>#${p.id}</b></td>
+                        <td><a href="/property/${p.id}" target="_blank" style="color:#006ce4; font-weight:600; text-decoration:none;">${p.title}</a></td>
+                        <td>${p.type === 'apartment' ? 'Квартира' : (p.type === 'house' ? 'Дом/Шале' : 'Комната')}</td>
+                        <td>📍 ${p.address}</td>
+                        <td><b>${p.price_per_night.toLocaleString('ru-RU')} ₽</b></td>
+                        <td>до ${p.max_guests} чел.</td>
+                        <td><span class="badge badge-success">✓ Доступен</span></td>
+                        <td><a href="/property/${p.id}" target="_blank" style="font-size:12px; color:#006ce4;">Открыть карточку</a></td>
+                    </tr>
+                `).join('');
+            }
+
+            // Render bookings
+            const bookingsTbody = document.getElementById("bookingsTableBody");
+            if (data.bookings.length === 0) {
+                bookingsTbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b;">Нет активных бронирований.</td></tr>`;
+            } else {
+                bookingsTbody.innerHTML = data.bookings.map(b => {
+                    let statusBadge = '<span class="badge badge-info">Подтверждено</span>';
+                    if (b.status === 'completed') statusBadge = '<span class="badge badge-success">Завершено</span>';
+                    if (b.status === 'pending') statusBadge = '<span class="badge badge-warning">Ожидает</span>';
+
+                    return `
+                        <tr>
+                            <td><b>#${b.id}</b></td>
+                            <td>${b.property_title || ('Объект #' + b.property_id)}</td>
+                            <td>👤 ${b.guest_name || ('Гость #' + b.guest_id)}</td>
+                            <td>${b.check_in_date} — ${b.check_out_date}</td>
+                            <td><b>${b.total_price.toLocaleString('ru-RU')} ₽</b></td>
+                            <td>${statusBadge}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // Render Messages
+            const msgsContainer = document.getElementById("messagesList");
+            if (data.messages.length === 0) {
+                msgsContainer.innerHTML = `<p style="color:var(--text-muted);">Диалогов пока нет.</p>`;
+            } else {
+                msgsContainer.innerHTML = data.messages.map(m => `
+                    <div class="message-item">
+                        <div class="message-meta">
+                            <span><b>Чат #${m.chat_id}</b> (Объект: ${m.property_title})</span>
+                            <span>${m.created_at || 'Сегодня'}</span>
+                        </div>
+                        <div class="message-text"><b>Гость:</b> «${m.message_text}»</div>
+                    </div>
+                `).join('');
+            }
+
+            // Render Reviews
+            const reviewsContainer = document.getElementById("reviewsList");
+            if (data.reviews.length === 0) {
+                reviewsContainer.innerHTML = `<p style="color:var(--text-muted);">Отзывов к вашим объектам пока нет.</p>`;
+            } else {
+                reviewsContainer.innerHTML = data.reviews.map(r => `
+                    <div class="message-item">
+                        <div class="message-meta">
+                            <span><b>Бронь #${r.booking_id}</b> • Оценки: Локация ${r.rating_location}/10, Чистота ${r.rating_cleanliness}/10, Цена ${r.rating_value}/10</span>
+                            <span>⭐ ${Math.round((r.rating_location + r.rating_cleanliness + r.rating_value)/3)}/10</span>
+                        </div>
+                        <div class="message-text"><b>Отзыв гостя:</b> «${r.comment}»</div>
+                        ${r.host_reply ? `
+                            <div class="reply-box">
+                                <b>Ваш ответ гостю:</b> «${r.host_reply}»
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            }
+
+        } catch (e) {
+            console.error(e);
+            alert("Ошибка загрузки данных кабинета хозяина");
+        }
+    }
+
+    // Load initial host on page open
+    window.addEventListener("DOMContentLoaded", () => {
+        loadHostDashboard(1);
+    });
+</script>
+
+</body>
+</html>

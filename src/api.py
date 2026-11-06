@@ -44,6 +44,7 @@ search_engine = RAGSearchEngine(get_connection)
 # Пути к HTML-файлам фронтенда
 INDEX_HTML_PATH = os.path.join(os.path.dirname(__file__), "static", "index.html")
 PROPERTY_HTML_PATH = os.path.join(os.path.dirname(__file__), "static", "property.html")
+HOST_HTML_PATH = os.path.join(os.path.dirname(__file__), "static", "host.html")
 
 # Фотографии высокого качества для красивого отображения объявлений на фронтенде
 PROPERTY_PHOTOS = {
@@ -190,6 +191,83 @@ def serve_property_page(property_id: str):
         with open(PROPERTY_HTML_PATH, "r", encoding="utf-8") as f:
             return HTMLResponse(content=f.read())
     return HTMLResponse("<h1>Property page not found</h1>", status_code=404)
+
+@app.get("/host", response_class=HTMLResponse)
+def serve_host_page():
+    """Отдает кабинет хозяина жилья (Экстранет) с управлением объектами и бронями."""
+    if os.path.exists(HOST_HTML_PATH):
+        with open(HOST_HTML_PATH, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse("<h1>Host page not found</h1>", status_code=404)
+
+@app.get("/api/host/dashboard")
+def get_host_dashboard(host_id: int = Query(1, description="ID хозяина из таблицы users")):
+    """
+    Возвращает сводку для кабинета хозяина:
+    1. Профиль хозяина (таблица users)
+    2. Его объекты (таблица properties)
+    3. Входящие бронирования (таблица bookings)
+    4. Сообщения от гостей (таблицы chats & messages)
+    5. Отзывы и ответы (таблица reviews)
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+
+    # 1. Профиль
+    cur.execute("SELECT id, email, phone, first_name, last_name, role FROM users WHERE id = ?", (host_id,))
+    host_row = cur.fetchone()
+    if not host_row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Host not found")
+    host_dict = dict(host_row)
+
+    # 2. Объекты хозяина
+    cur.execute("SELECT * FROM properties WHERE host_id = ?", (host_id,))
+    props = [dict(r) for r in cur.fetchall()]
+
+    # 3. Бронирования его объектов
+    cur.execute("""
+        SELECT b.*, p.title as property_title, u.first_name || ' ' || u.last_name as guest_name
+        FROM bookings b
+        JOIN properties p ON b.property_id = p.id
+        JOIN users u ON b.guest_id = u.id
+        WHERE p.host_id = ?
+        ORDER BY b.created_at DESC
+    """, (host_id,))
+    bookings = [dict(r) for r in cur.fetchall()]
+
+    # 4. Сообщения
+    cur.execute("""
+        SELECT m.*, c.property_id, p.title as property_title, u.first_name as sender_name
+        FROM messages m
+        JOIN chats c ON m.chat_id = c.id
+        JOIN properties p ON c.property_id = p.id
+        JOIN users u ON m.sender_id = u.id
+        WHERE c.host_id = ?
+        ORDER BY m.created_at DESC
+    """, (host_id,))
+    messages = [dict(r) for r in cur.fetchall()]
+
+    # 5. Отзывы
+    cur.execute("""
+        SELECT r.*, p.title as property_title, u.first_name || ' ' || u.last_name as guest_name
+        FROM reviews r
+        JOIN bookings b ON r.booking_id = b.id
+        JOIN properties p ON b.property_id = p.id
+        JOIN users u ON b.guest_id = u.id
+        WHERE p.host_id = ?
+        ORDER BY r.created_at DESC
+    """, (host_id,))
+    reviews = [dict(r) for r in cur.fetchall()]
+
+    conn.close()
+    return {
+        "host": host_dict,
+        "properties": props,
+        "bookings": bookings,
+        "messages": messages,
+        "reviews": reviews
+    }
 
 # --------------------------------------------------------------------
 # 2. СИСТЕМНЫЙ СТАТУС API
