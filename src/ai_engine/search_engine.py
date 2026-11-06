@@ -88,30 +88,38 @@ class EmbeddingModel:
 
     def _local_semantic_embedding(self, text: str) -> List[float]:
         """
-        Локальный алгоритм проекции в 1536-мерное пространство (Random Projection).
+        Локальный алгоритм проекции в 1536-мерное пространство (Subword Random Projection).
         
         Как это работает:
         1. Текст очищается от знаков препинания и приводится к нижнему регистру.
-        2. Извлекаются отдельные слова и соседние пары слов (биграммы) для сохранения контекста.
-        3. Для каждого токена через криптографический хеш SHA-256 генерируются фиксированные оси.
-        4. Производится L2-нормализация (деление каждого элемента на длину вектора),
-           благодаря чему евклидова длина вектора становится строго равной 1.0.
-           Это позволяет считать косинусное сходство через быстрое скалярное произведение!
+        2. Извлекаются отдельные слова и соседние пары слов (биграммы) для учета контекста.
+        3. Для учета русской морфологии ("море", "моря", "морской") извлекаются
+           символьные 3-граммы и 4-граммы (как в FastText / BPE токенизаторах).
+        4. Каждый токен через SHA-256 хешируется и проецируется на фиксированные координаты.
+        5. Производится L2-нормализация (длина вектора = 1.0) для быстрого расчета Cosine Similarity.
         """
         words = re.findall(r'\b[a-zA-Zа-яА-Я0-9ёЁ]{2,}\b', text.lower())
         vector = [0.0] * self.DIMENSION
         if not words:
             return vector
 
-        # Формируем униграммы и биграммы ("вид", "на", "море", "вид_на", "на_море")
         tokens = list(words)
+        # Биграммы слов для учета словосочетаний ("вид_на", "на_море")
         for i in range(len(words) - 1):
             tokens.append(f"{words[i]}_{words[i+1]}")
 
+        # Символьные n-граммы (3-граммы и 4-граммы) для учета морфологии и падежей
+        for w in words:
+            padded = f"<{w}>"
+            for n in (3, 4):
+                if len(padded) >= n:
+                    for i in range(len(padded) - n + 1):
+                        tokens.append(padded[i:i+n])
+
         for token in tokens:
             hash_bytes = hashlib.sha256(token.encode('utf-8')).digest()
-            # Проецируем токен на псевдослучайные координаты в 1536d
-            for step in range(8):
+            # Проецируем токен на 4 базисные оси из 1536
+            for step in range(4):
                 idx = int.from_bytes(hash_bytes[step*4 : (step+1)*4], 'little') % self.DIMENSION
                 sign = 1.0 if (hash_bytes[step] % 2 == 0) else -1.0
                 vector[idx] += sign
@@ -326,6 +334,13 @@ class RAGSearchEngine:
         """)
         rows = cursor.fetchall()
 
+        # Ключевые смысловые корни слов запроса для учета русской морфологии (падежи и окончания)
+        query_stems = [
+            re.sub(r'(ый|ий|ой|ая|яя|ое|ее|ые|ие|ого|его|ому|ему|ых|их|ую|юю|ом|ем|а|я|у|ю|е|о|ы|и)$', '', w.lower())
+            for w in re.findall(r'\b[a-zA-Zа-яА-Я0-9ёЁ]{3,}\b', query)
+        ]
+        query_stems = [s if len(s) >= 3 else s[:3] for s in query_stems if len(s) >= 3]
+
         scored_properties = []
         for row in rows:
             # Опциональные жесткие фильтры (цена, вместимость, город)
@@ -336,12 +351,23 @@ class RAGSearchEngine:
             if city_hint and city_hint.lower() not in row["address"].lower() and city_hint.lower() not in row["description"].lower():
                 continue
 
-            # Расчет сходства между вектором запроса и вектором объявления
+            # Расчет косинусного сходства между вектором запроса и вектором объекта
             try:
                 emb = json.loads(row["embedding"])
                 similarity = self.cosine_similarity(query_vector, emb)
             except Exception:
                 similarity = 0.0
+
+            # Гибридный учет (Hybrid RAG): проверяем наличие корней запроса в тексте объекта
+            doc_text = f"{row['title']} {row['description']} {row['address']}".lower()
+            stem_hits = sum(1 for s in query_stems if s in doc_text)
+            if stem_hits > 0:
+                similarity += 0.12 * stem_hits
+            else:
+                # Если ни один смысловой корень короткого точного запроса не найден,
+                # объект штрафуется и не попадает в топ рекомендаций
+                if len(query_stems) <= 2:
+                    similarity -= 0.15
 
             prop_dict = {
                 "id": row["id"],

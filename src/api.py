@@ -99,7 +99,7 @@ class ChatResponse(BaseModel):
     parsed_intent: Dict[str, Any]          # Метаданные запроса
     recommendations: List[Dict[str, Any]]  # Список карточек найденных квартир
 
-def _enrich_property_for_frontend(p: Dict[str, Any]) -> Dict[str, Any]:
+def _enrich_property_for_frontend(p: Dict[str, Any], query: Optional[str] = None) -> Dict[str, Any]:
     """
     Вспомогательная функция: обогащает запись из таблицы properties
     данными из связных таблиц (reviews, users) для отрисовки карточки в HTML/JS.
@@ -144,8 +144,28 @@ def _enrich_property_for_frontend(p: Dict[str, Any]) -> Dict[str, Any]:
     if "шале" in p["title"].lower():
         amenities_text = "• Камин на дровах • Баня • Мангал • Парковка"
 
-    sim = p.get("similarity", 0.85)
-    ai_score = int(sim * 100) if sim > 0 else 85
+    sim = p.get("similarity", None)
+    if sim is None or not query:
+        ai_score = 85
+        reasons = [
+            "Высокий рейтинг и проверенные удобства",
+            "Положительные оценки реальных гостей"
+        ]
+        warnings = []
+    else:
+        # При активном поисковом запросе
+        if sim <= 0.02:
+            ai_score = max(5, int(sim * 100)) # Около нуля: объект не по теме
+            reasons = []
+            warnings = ["Объект не соответствует параметрам поискового запроса"]
+        else:
+            # Масштабируем сходство (0.05 .. 0.25+) в диапазон 55% .. 98%
+            ai_score = min(98, max(40, int(50 + (sim / 0.20) * 45)))
+            reasons = [
+                f"Семантическое соответствие {ai_score}% по запросу «{query}»",
+                "Высокие оценки чистоты и расположения"
+            ]
+            warnings = []
 
     return {
         "property_id": str(p_id),
@@ -162,11 +182,8 @@ def _enrich_property_for_frontend(p: Dict[str, Any]) -> Dict[str, Any]:
         "address": p["address"],
         "distance_to_sea_m": 120 if "моря" in p["title"].lower() else None,
         "amenities_names": amenities_text,
-        "reasons": [
-            f"Семантическое сходство {ai_score}% по описанию и расположению",
-            "Высокие оценки чистоты и расположения от реальных гостей"
-        ],
-        "warnings": [],
+        "reasons": reasons,
+        "warnings": warnings,
         "latitude": p["latitude"],
         "longitude": p["longitude"],
         "ai_score": ai_score,
@@ -316,7 +333,7 @@ def search_properties(
 
     # Шаги 2 и 3: Векторизация запроса и семантическое ранжирование
     raw_results = search_engine.semantic_search(query, top_k=6)
-    enriched = [_enrich_property_for_frontend(r) for r in raw_results]
+    enriched = [_enrich_property_for_frontend(r, query=query) for r in raw_results]
 
     return {
         "query": query,
@@ -337,7 +354,7 @@ def chat_with_ai(req: ChatRequest):
     3. Передает контекст в LLM для формирования связного ответа (Шаг 4).
     """
     rag_result = search_engine.generate_chat_response(req.message, top_k=4)
-    enriched = [_enrich_property_for_frontend(r) for r in rag_result["results"]]
+    enriched = [_enrich_property_for_frontend(r, query=req.message) for r in rag_result["results"]]
 
     return ChatResponse(
         reply=rag_result["reply"],
