@@ -1,21 +1,27 @@
 """
-Seed realistic demonstration data into the 7 tables matching the project architecture:
-  1. users (USER)
-  2. properties (Properties)
-  3. property_embeddings (Property Embeddings - Шаг 1 пайплайна RAG)
-  4. bookings (Bookings)
-  5. chats (Messages chats)
-  6. messages (Messages messages)
-  7. reviews (Reviews)
+====================================================================
+СКРИПТ ГЕНЕРАЦИИ ТЕСТОВЫХ ДАННЫХ (ФАЙЛ: src/db/seed_data.py)
+====================================================================
+Наполняет все 7 таблиц базы данных реалистичным датасетом,
+полностью синхронизированным со схемой проекта:
+  1. users (пользователи: хозяева, арендаторы, админ)
+  2. properties (объекты: Сочи, Санкт-Петербург, Москва, Рощино, Адлер, Зеленоградск)
+  3. property_embeddings (векторизация title + description в 1536d - Шаг 1 RAG)
+  4. bookings (сделки бронирования)
+  5. chats (комнаты чатов между гостем и хозяином)
+  6. messages (текст переписки внутри чатов)
+  7. reviews (верифицированные отзывы с оценками)
+====================================================================
 """
 
 import os
 import sys
 import json
 
-# Обеспечиваем импорт модулей проекта
+# Добавляем корневую папку проекта в sys.path, чтобы корректно импортировать модули
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Настройка UTF-8 вывода в консоль Windows для корректного отображения кириллицы
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -26,33 +32,46 @@ from db.schema_sqlite import get_connection, init_db
 from ai_engine.search_engine import RAGSearchEngine
 
 def seed_database():
+    """
+    Основная функция заполнения базы данных.
+    Последовательно наполняет таблицы с учетом внешних ключей (Foreign Keys).
+    """
     print("Инициализация таблиц базы данных...")
     init_db()
 
     conn = get_connection()
     cursor = conn.cursor()
 
+    # ----------------------------------------------------------------
+    # 1. Заполнение таблицы USER (Пользователи)
+    # Хозяева (host), гости (guest) и администратор (admin)
+    # ----------------------------------------------------------------
     print("Заполнение таблицы users (USER)...")
     users = [
-        # Хозяева (hosts)
+        # Хозяева жилья (hosts)
         (1, "host_elena@sutoch.ru", "pbkdf2_sha256$host123", "+7 (918) 123-45-67", "Елена", "Смирнова", "host"),
         (2, "host_maxim@sutoch.ru", "pbkdf2_sha256$host456", "+7 (921) 987-65-43", "Максим", "Волков", "host"),
         (3, "host_olga@sutoch.ru", "pbkdf2_sha256$host789", "+7 (985) 555-12-34", "Ольга", "Кузнецова", "host"),
         (4, "host_alex@sutoch.ru", "pbkdf2_sha256$host321", "+7 (911) 444-99-88", "Александр", "Морозов", "host"),
-        # Гости (guests)
+        # Гости-арендаторы (guests)
         (5, "guest_ivan@mail.ru", "pbkdf2_sha256$guest111", "+7 (903) 111-22-33", "Иван", "Петров", "guest"),
         (6, "guest_anna@yandex.ru", "pbkdf2_sha256$guest222", "+7 (916) 222-33-44", "Анна", "Соколова", "guest"),
         (7, "guest_dmitry@gmail.com", "pbkdf2_sha256$guest333", "+7 (925) 333-44-55", "Дмитрий", "Романов", "guest"),
-        # Администратор (admin)
+        # Администратор платформы (admin)
         (8, "admin@sutoch.ru", "pbkdf2_sha256$admin999", "+7 (800) 555-35-35", "Сергей", "Администратор", "admin")
     ]
 
+    # Использование параметризованного запроса '?' защищает от SQL-инъекций
     cursor.executemany("""
         INSERT INTO users (id, email, password_hash, phone, first_name, last_name, role)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     """, users)
     conn.commit()
 
+    # ----------------------------------------------------------------
+    # 2. Заполнение таблицы Properties (Объекты недвижимости)
+    # Поля: id, host_id, title, description, type, price_per_night, lat, lon, address, max_guests, is_available
+    # ----------------------------------------------------------------
     print("Заполнение таблицы properties (Properties)...")
     properties = [
         (
@@ -127,6 +146,11 @@ def seed_database():
     conn.commit()
     conn.close()
 
+    # ----------------------------------------------------------------
+    # 3. ШАГ 1 RAG: Векторизация базы в property_embeddings
+    # Для каждого объекта берем (title + description), пропускаем через
+    # Embedding Model (1536d) и сохраняем вектор в таблицу property_embeddings.
+    # ----------------------------------------------------------------
     print("Шаг 1: Векторизация базы в property_embeddings (Embedding Model 1536d)...")
     search_engine = RAGSearchEngine(get_connection)
     for prop in properties:
@@ -139,6 +163,10 @@ def seed_database():
     conn = get_connection()
     cursor = conn.cursor()
 
+    # ----------------------------------------------------------------
+    # 4. Заполнение таблицы Bookings (Бронирования)
+    # Связывает property_id и guest_id с конкретными датами и статусом
+    # ----------------------------------------------------------------
     print("Заполнение таблицы bookings (Bookings)...")
     bookings = [
         (1, 1, 5, "2026-06-10", "2026-06-15", 37500.0, "completed"),
@@ -152,10 +180,13 @@ def seed_database():
         VALUES (?, ?, ?, ?, ?, ?, ?)
     """, bookings)
 
+    # ----------------------------------------------------------------
+    # 5. Заполнение таблицы Messages (Чаты и сообщения)
+    # ----------------------------------------------------------------
     print("Заполнение таблицы Messages (chats & messages)...")
     chats = [
-        (1, 1, 5, 1),
-        (2, 2, 6, 2)
+        (1, 1, 5, 1), # Чат по объекту 1: гость 5 (Иван) и хост 1 (Елена)
+        (2, 2, 6, 2)  # Чат по объекту 2: гостья 6 (Анна) и хост 2 (Максим)
     ]
     cursor.executemany("""
         INSERT INTO chats (id, property_id, guest_id, host_id)
@@ -173,6 +204,10 @@ def seed_database():
         VALUES (?, ?, ?, ?, ?)
     """, messages)
 
+    # ----------------------------------------------------------------
+    # 6. Заполнение таблицы Reviews (Отзывы)
+    # Привязаны строго к совершенным бронированиям (booking_id)
+    # ----------------------------------------------------------------
     print("Заполнение таблицы reviews (Reviews)...")
     reviews = [
         (
